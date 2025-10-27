@@ -9,7 +9,7 @@ Caminho até à saida
 VehicleTypes
 Car, motorcicle e truck
 
-Semaphore -> extende Thread
+TrafficLight -> extende Thread
 Queue de veiculos
 Queue de veiculos a enviar
 Id
@@ -18,13 +18,20 @@ SemaphoreLog
 run()
 
 CrossroadPorts
-Cr1, Cr2, Cr3, Cr4, Cr5, S
+E1, E2, E3, Cr1, Cr2, Cr3, Cr4, Cr5, S
+
+
 
 Crossroad -> extende ProcessBuilder
 Id do cruzamento
-Queue de semaforos
+List de semaforos
 VehicleSender
 VehicleReciver
+
+RoadPorts
+E1-CR1, E2-CR2, E3-CR3, CR1-CR2, CR1-CR4, CR2-CR1, CR2-CR5, CR2-CR3, CR3-CR2, CR3-S, CR4-CR5, CR5-S
+
+E1-CR1, CR1-S
 
 Road -> Extende ProcessBuilder
 VehicleSender
@@ -37,9 +44,11 @@ Queue Vehicles para enviar
 VehicleReciver -> Extende Thread
 Queue Vehicle recebidos
 
-SemaphoreLog
-Veiculo
-Tempo de passagem
+Event 
+Vehicle
+Crossroad origin
+Crossroad destination
+time
 
 Simulator
 Queue de cruzamentos

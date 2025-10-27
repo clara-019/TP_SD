@@ -1,6 +1,6 @@
 package Enums;
 
-public enum RoadsEnum {
+public enum RoadEnum {
     /*E1_CR1, E2_CR2,*/ E3_CR3, /*CR1_CR2, CR1_CR4, CR2_CR1, CR2_CR5, CR2_CR3, CR3_CR2,*/ CR3_S /* , CR4_CR5, CR5_S*/;
 
     public String getRoadToString() {
@@ -77,7 +77,7 @@ public enum RoadsEnum {
         }
     }
 
-    public CrossroadsEnum getOrigin(){
+    public CrossroadEnum getOrigin(){
         switch (this) {
             /*
              * case E1_CR1:
@@ -86,7 +86,7 @@ public enum RoadsEnum {
              * return Crossroads.E2;
              */
             case E3_CR3:
-                return CrossroadsEnum.E3;
+                return CrossroadEnum.E3;
             /*
              * case CR1_CR2:
              * case CR1_CR4:
@@ -98,7 +98,7 @@ public enum RoadsEnum {
              * case CR3_CR2:
              */
             case CR3_S:
-                return CrossroadsEnum.Cr3;
+                return CrossroadEnum.Cr3;
             /*
              * case CR4_CR5:
              * return Crossroads.Cr4;
@@ -110,7 +110,7 @@ public enum RoadsEnum {
         }
     }
 
-    public CrossroadsEnum getDestination(){
+    public CrossroadEnum getDestination(){
         switch (this) {
             /*
              * case E1_CR1:
@@ -119,7 +119,7 @@ public enum RoadsEnum {
              * return Crossroads.Cr2;
              */
             case E3_CR3:
-                return CrossroadsEnum.Cr3;
+                return CrossroadEnum.Cr3;
             /*
              * case CR1_CR2:
              * return Crossroads.Cr2;
@@ -134,7 +134,7 @@ public enum RoadsEnum {
              * case CR3_CR2:
              */
             case CR3_S:
-                return CrossroadsEnum.S;
+                return CrossroadEnum.S;
             /*
              * case CR4_CR5:
              * return Crossroads.Cr5;
