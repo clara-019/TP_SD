@@ -9,7 +9,7 @@ public enum VehicleTypes {
     private static final double TRUCK_MULTIPLIER = 4.0;
     private static final double MOTORCYCLE_MULTIPLIER = 0.5;
 
-    public String getType() {
+    public String getTypeToString() {
         switch (this) {
             case CAR:
                 return "Car";
