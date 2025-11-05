@@ -3,22 +3,37 @@ package Classes;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import Enums.RoadEnum;
+
 public class SynchronizedQueue<E> {
-    private Queue<E> list = new LinkedList<E>();
+    private Queue<E> queue = new LinkedList<E>();
+    private RoadEnum road;
+    
+    public SynchronizedQueue(RoadEnum road) {
+        this.road = road;
+    }
+
+    public SynchronizedQueue() {
+        this.road = null;
+    }
+
+    public RoadEnum getRoad() {
+        return road;
+    }
 
     public synchronized void add(E element) {
-        list.add(element);
+        queue.add(element);
     }
 
     public synchronized boolean isEmpty() {
-        return list.isEmpty();
+        return queue.isEmpty();
     }
 
     public synchronized E remove() {
-        return list.poll();
+        return queue.poll();
     }
 
     public synchronized E peek(){
-        return list.peek();
+        return queue.peek();
     }
 }

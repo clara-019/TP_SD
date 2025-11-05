@@ -22,14 +22,14 @@ public enum VehicleTypes {
         }
     }
 
-    public double getTimeToPass(int temp) {
+    public long getTimeToPass(int temp) {
         switch (this) {
             case CAR:
-                return CAR_MULTIPLIER * temp;
+                return (long) (CAR_MULTIPLIER * temp);
             case TRUCK:
-                return TRUCK_MULTIPLIER * MOTORCYCLE_MULTIPLIER * CAR_MULTIPLIER * temp;
+                return (long) (TRUCK_MULTIPLIER * MOTORCYCLE_MULTIPLIER * CAR_MULTIPLIER * temp);
             case MOTORCYCLE:
-                return MOTORCYCLE_MULTIPLIER * CAR_MULTIPLIER * temp;
+                return (long) (MOTORCYCLE_MULTIPLIER * CAR_MULTIPLIER * temp);
             default:
                 return -1;
         }

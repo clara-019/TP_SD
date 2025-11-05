@@ -1,9 +1,13 @@
 package Enums;
 
-public enum RoadEnum {
-    /*E1_CR1, E2_CR2,*/ E3_CR3, /*CR1_CR2, CR1_CR4, CR2_CR1, CR2_CR5, CR2_CR3, CR3_CR2,*/ CR3_S /* , CR4_CR5, CR5_S*/;
+import java.util.*;
 
-    public String getRoadToString() {
+public enum RoadEnum {
+    /* E1_CR1, E2_CR2, */ E3_CR3, /* CR1_CR2, CR1_CR4, CR2_CR1, CR2_CR5, CR2_CR3, CR3_CR2, */ CR3_S /*
+                                                                                                     * , CR4_CR5, CR5_S
+                                                                                                     */;
+
+    public String toString() {
         switch (this) {
             /*
              * case E1_CR1:
@@ -77,73 +81,24 @@ public enum RoadEnum {
         }
     }
 
-    public CrossroadEnum getOrigin(){
-        switch (this) {
-            /*
-             * case E1_CR1:
-             * return Crossroads.E1;
-             * case E2_CR2:
-             * return Crossroads.E2;
-             */
-            case E3_CR3:
-                return CrossroadEnum.E3;
-            /*
-             * case CR1_CR2:
-             * case CR1_CR4:
-             * return Crossroads.Cr1;
-             * case CR2_CR1:
-             * case CR2_CR5:
-             * case CR2_CR3:
-             * return Crossroads.Cr2;
-             * case CR3_CR2:
-             */
-            case CR3_S:
-                return CrossroadEnum.Cr3;
-            /*
-             * case CR4_CR5:
-             * return Crossroads.Cr4;
-             * case CR5_S:
-             * return Crossroads.Cr5;
-             */
-            default:
-                return null;
-        }
+    public CrossroadEnum getOrigin() {
+        return CrossroadEnum.toCrossroadEnum(this.toString().split("_")[0]);
     }
 
-    public CrossroadEnum getDestination(){
-        switch (this) {
-            /*
-             * case E1_CR1:
-             * return Crossroads.Cr1;
-             * case E2_CR2:
-             * return Crossroads.Cr2;
-             */
-            case E3_CR3:
-                return CrossroadEnum.Cr3;
-            /*
-             * case CR1_CR2:
-             * return Crossroads.Cr2;
-             * case CR1_CR4:
-             * return Crossroads.Cr4;
-             * case CR2_CR1:
-             * return Crossroads.Cr1;
-             * case CR2_CR5:
-             * return Crossroads.Cr5;
-             * case CR2_CR3:
-             * return Crossroads.Cr3;
-             * case CR3_CR2:
-             */
-            case CR3_S:
-                return CrossroadEnum.S;
-            /*
-             * case CR4_CR5:
-             * return Crossroads.Cr5;
-             * case CR5_S:
-             * return Crossroads.S;
-             */
-            default:
-                return null;
+    public CrossroadEnum getDestination() {
+        return CrossroadEnum.toCrossroadEnum(this.toString().split("_")[1]);
+    }
+
+    public static List<RoadEnum> getRoadsToCrossroad(CrossroadEnum crossroadEnum) {
+        List<RoadEnum> roads = new ArrayList<>();
+
+        for (RoadEnum road : values()) {
+            if (road.getDestination() == crossroadEnum) {
+                roads.add(road);
+            }
         }
+
+        return roads;
     }
 
 }
