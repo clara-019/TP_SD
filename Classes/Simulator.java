@@ -22,8 +22,8 @@ public class Simulator {
     // Configura alguns eventos para começar a simulação
     private void setupInitialEvents() {
         // Cria alguns veículos de exemplo
-        Vehicle car1 = new Vehicle("CAR-001", VehicleTypes.CAR, PathEnum.PATH1);
-        Vehicle truck1 = new Vehicle("TRUCK-001", VehicleTypes.TRUCK, PathEnum.PATH2);
+        Vehicle car1 = new Vehicle("CAR-001", VehicleTypes.CAR, PathEnum.E3_1);
+        Vehicle truck1 = new Vehicle("TRUCK-001", VehicleTypes.TRUCK, PathEnum.E3_1);
 
         // Agenda chegada inicial dos veículos
         eventHandler.addEvent(new Event(car1, CrossroadEnum.A, 0, "CHEGADA"));

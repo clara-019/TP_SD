@@ -44,6 +44,15 @@ public enum RoadEnum {
         }
     }
 
+    public static RoadEnum toRoadEnum(String roadStr) {
+        for (RoadEnum road : values()) {
+            if (road.toString().equals(roadStr)) {
+                return road;
+            }
+        }
+        return null;
+    }
+
     public int getPort() {
         switch (this) {
             /*

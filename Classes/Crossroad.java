@@ -26,6 +26,4 @@ public class Crossroad{
         VehicleSender vehicleSender = new VehicleSender(vehicleToSendQueue, crossroad);
         vehicleSender.start();
     }
-
-
 }

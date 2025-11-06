@@ -34,6 +34,15 @@ public enum CrossroadEnum {
         }
     }
 
+    public static CrossroadEnum toCrossroadEnum(String crossString) {
+        for (CrossroadEnum crossroad : values()) {
+            if (crossroad.toString().equals(crossString)) {
+                return crossroad;
+            }
+        }
+        return null;
+    }
+
     public int getPort() {
         switch (this) {
             /*
@@ -65,34 +74,5 @@ public enum CrossroadEnum {
         }
     }
 
-    public static CrossroadEnum toCrossroadEnum(String crossString){
-        switch(crossString){
-            /*
-             * case "E1":
-             * return E1;
-             * case "E2":
-             * return E2;
-             */
-            case "E3":
-                return E3;
-            /*
-             * case "Cr1":
-             * return Cr1;
-             * case "Cr2":
-             * return Cr2;
-             */
-            case "Cr3":
-                return Cr3;
-            /*
-             * case "Cr4":
-             * return Cr4;
-             * case "Cr5":
-             * return Cr5;
-             */
-            case "S":
-                return S;
-            default:
-                return null;
-        }
-    }
+    
 }
