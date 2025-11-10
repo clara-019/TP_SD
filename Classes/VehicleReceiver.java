@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.LocalTime;
 import java.util.List;
 
 import Enums.CrossroadEnum;
@@ -14,6 +15,7 @@ public class VehicleReceiver extends Thread {
     private final CrossroadEnum crossroad;
     private final RoadEnum road;
     private final List<SynchronizedQueue<Vehicle>> queues;
+    private volatile boolean running = true;
 
     public VehicleReceiver(List<SynchronizedQueue<Vehicle>> queues, CrossroadEnum crossroad) {
         this.queues = queues;
@@ -27,6 +29,12 @@ public class VehicleReceiver extends Thread {
         this.crossroad = null;
     }
 
+    /** Permite parar o receiver de forma segura */
+    public void stopReceiver() {
+        running = false;
+        this.interrupt();
+    }
+
     @Override
     public void run() {
         int port = (crossroad != null) ? crossroad.getPort() : road.getPort();
@@ -35,50 +43,56 @@ public class VehicleReceiver extends Thread {
         new Thread(() -> listenForVehicles(port)).start();
 
         // Thread principal processa a queue
-        while (true) {
+        while (running) {
             for (SynchronizedQueue<Vehicle> queue : queues) {
                 Vehicle vehicle = queue.remove();
                 if (vehicle != null) {
-                    System.out.println("Vehicle " + vehicle.getId() + " has crossed " +
-                        (crossroad != null ? crossroad : road));
+                    System.out.printf("[%s] [Receiver-%s] Vehicle %s has crossed%n",
+                            LocalTime.now(),
+                            (crossroad != null ? crossroad : road),
+                            vehicle.getId());
                 }
             }
 
             try {
                 Thread.sleep(300);
             } catch (InterruptedException e) {
-                break;
+                running = false; // parar de forma segura
             }
         }
     }
 
     private void listenForVehicles(int port) {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("[Receiver] Listening on port " + port + " (" +
-                (crossroad != null ? crossroad : road) + ")");
+            System.out.printf("[%s] [Receiver-%s] Listening on port %d%n",
+                    LocalTime.now(),
+                    (crossroad != null ? crossroad : road),
+                    port);
 
-            while (true) {
+            while (running) {
                 Socket socket = serverSocket.accept();
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 String message = in.readLine();
 
                 if (message != null && !message.isEmpty()) {
-                    // Por agora assume-se que a mensagem é apenas o ID
-                    int id = Integer.parseInt(message.trim());
+                    // Apenas ID simples
+                    String id = message.trim();
                     Vehicle vehicle = new Vehicle(id);
 
-                    // Adiciona à primeira fila (ou decide com base na direção, etc.)
-                    queues.get(0).insert(vehicle);
-                    System.out.println("[Receiver] Vehicle " + id + " received and queued at " +
-                        (crossroad != null ? crossroad : road));
+                    queues.get(0).add(vehicle);
+                    System.out.printf("[%s] [Receiver-%s] Vehicle %s received and queued%n",
+                            LocalTime.now(),
+                            (crossroad != null ? crossroad : road),
+                            vehicle.getId());
                 }
 
                 socket.close();
             }
 
         } catch (Exception e) {
-            System.err.println("[Receiver] Error on " + (crossroad != null ? crossroad : road) +
-                ": " + e.getMessage());
+            System.err.println("[Receiver] Error on " +
+                    (crossroad != null ? crossroad : road) +
+                    ": " + e.getMessage());
         }
     }
 }
