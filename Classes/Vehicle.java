@@ -46,6 +46,10 @@ public class Vehicle {
         return nextCrossroad;
     }
 
+    public PathEnum getPath() {
+        return path;
+    }
+
     public void setNextCrossroad(){
         int currentIndex = path.getPath().indexOf(nextCrossroad);
         if (currentIndex + 1 < path.getPath().size()) {

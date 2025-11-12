@@ -22,6 +22,14 @@ public enum VehicleTypes {
         }
     }
 
+    public static VehicleTypes getVehicleTypeFromString(String typeStr) {
+        for (VehicleTypes type : VehicleTypes.values()) {
+            if (type.getTypeToString().equalsIgnoreCase(typeStr)) {
+                return type;
+            }
+        }
+        return null; // or throw an exception if preferred
+    }
     public long getTimeToPass(int temp) {
         switch (this) {
             case CAR:

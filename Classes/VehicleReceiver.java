@@ -9,6 +9,8 @@ import java.util.List;
 
 import Enums.CrossroadEnum;
 import Enums.RoadEnum;
+import Enums.VehicleTypes;
+import Enums.PathEnum;
 
 public class VehicleReceiver extends Thread {
 
@@ -27,9 +29,10 @@ public class VehicleReceiver extends Thread {
         this.queues = queues;
         this.road = road;
         this.crossroad = null;
+       
     }
 
-    /** Permite parar o receiver de forma segura */
+    /** Permite parar o receiver de form segura */
     public void stopReceiver() {
         running = false;
         this.interrupt();
@@ -70,14 +73,32 @@ public class VehicleReceiver extends Thread {
                     port);
 
             while (running) {
-                Socket socket = serverSocket.accept();
-                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                String message = in.readLine();
+                try (Socket socket = serverSocket.accept();
+                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-                if (message != null && !message.isEmpty()) {
-                    // Apenas ID simples
-                    String id = message.trim();
-                    Vehicle vehicle = new Vehicle(id);
+                    // Ler 3 linhas: id, type, path (evita regex e usa apenas split/enum)
+                    String idLine = in.readLine();
+                    String typeLine = in.readLine();
+                    String pathLine = in.readLine();
+
+                    if (idLine == null || idLine.isEmpty()) {
+                        // Nada para ler
+                        continue;
+                    }
+
+                    String id = idLine.trim();
+                    VehicleTypes type = VehicleTypes.getVehicleTypeFromString(typeLine);
+                    PathEnum path = PathEnum.E3_1;
+
+                    try {
+                        if (pathLine != null && !pathLine.isEmpty()) {
+                            path = PathEnum.valueOf(pathLine.trim());
+                        }
+                    } catch (IllegalArgumentException iae) {
+                        System.err.println("[Receiver] Unknown PathEnum: '" + pathLine + "', using default.");
+                    }
+
+                    Vehicle vehicle = new Vehicle(id, type, path);
 
                     queues.get(0).add(vehicle);
                     System.out.printf("[%s] [Receiver-%s] Vehicle %s received and queued%n",
@@ -85,8 +106,6 @@ public class VehicleReceiver extends Thread {
                             (crossroad != null ? crossroad : road),
                             vehicle.getId());
                 }
-
-                socket.close();
             }
 
         } catch (Exception e) {

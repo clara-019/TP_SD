@@ -41,8 +41,13 @@ public class VehicleSender extends Thread {
         try (Socket socket = new Socket("localhost", crossroad.getPort());
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
-            // Simplesmente envia o ID — podes depois mudar para JSON
+            // Envia os campos em linhas separadas para facilitar o parsing sem usar regex
+            // Linha 1: id
+            // Linha 2: type (nome do enum VehicleTypes)
+            // Linha 3: path (nome do enum PathEnum)
             out.println(vehicle.getId());
+            out.println(vehicle.getType() != null ? vehicle.getType().name() : "");
+            out.println(vehicle.getPath() != null ? vehicle.getPath().name() : "");
 
         } catch (Exception e) {
             System.err.println("[Sender] Erro ao enviar veículo para " + crossroad + ": " + e.getMessage());
