@@ -81,22 +81,13 @@ public class VehicleReceiver extends Thread {
                 try (Socket socket = serverSocket.accept();
                      BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-                    // Ler 3 linhas: id, type, path
+                    // Ler 4 linhas: id, type, path, originRoad
                     String idLine = in.readLine();
                     String typeLine = in.readLine();
                     String pathLine = in.readLine();
-                    String originLine = in.readLine();
+                    String originRoadLine = in.readLine();
 
                     if (idLine == null || idLine.isEmpty() || typeLine == null || typeLine.isEmpty()) continue;
-
-                    // optional originRoad line (sent by sender to indicate which road the vehicle came from)
-                   
-
-                    if (idLine == null || idLine.isEmpty()) {
-                        // Nada para ler
-                        continue;
-                    }
-
 
                     String id = idLine.trim();
                     VehicleTypes type = VehicleTypes.getVehicleTypeFromString(typeLine);
@@ -112,13 +103,12 @@ public class VehicleReceiver extends Thread {
 
                     Vehicle vehicle = new Vehicle(id, type, path);
 
-
-                    // If an origin was provided, try to map it
+                    // If an originRoad was provided, try to map it
                     RoadEnum originRoad = null;
-                    if (originLine != null && !originLine.isEmpty()) {
-                        originRoad = RoadEnum.toRoadEnum(originLine.trim());
+                    if (originRoadLine != null && !originRoadLine.isEmpty()) {
+                        originRoad = RoadEnum.toRoadEnum(originRoadLine.trim());
                         if (originRoad == null) {
-                            System.err.println("[Receiver] Unknown origin road: '" + originLine + "'");
+                            System.err.println("[Receiver] Unknown origin road: '" + originRoadLine + "'");
                         } else {
                             vehicle.setOriginRoad(originRoad);
                         }
@@ -143,11 +133,11 @@ public class VehicleReceiver extends Thread {
                             queues.get(0).add(vehicle);
                         }
 
-                        System.out.printf("[%s] [Receiver-%s] Vehicle %s received at crossroad and queued (origin=%s)%n",
-                                LocalTime.now(),
-                                crossroad,
-                                vehicle.getId(),
-                                originRoad != null ? originRoad : "unknown");
+                        System.out.printf("[%s] [Receiver-%s] Vehicle %s received at crossroad and queued (originRoad=%s)%n",
+                            LocalTime.now(),
+                            crossroad,
+                            vehicle.getId(),
+                            (vehicle.getOriginRoad() != null ? vehicle.getOriginRoad() : "N/A"));
 
                     } else {
                         // This is a Road receiver: simulate road travel time, then enqueue for sending

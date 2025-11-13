@@ -7,9 +7,15 @@ import java.net.Socket;
 
 public class VehicleSender extends Thread {
     private final SynchronizedQueue<Vehicle> vehiclesToSend;
+    private final CrossroadEnum crossroad;
 
     public VehicleSender(SynchronizedQueue<Vehicle> vehiclesToSend) {
+        this(vehiclesToSend, null);
+    }
+
+    public VehicleSender(SynchronizedQueue<Vehicle> vehiclesToSend, CrossroadEnum crossroad) {
         this.vehiclesToSend = vehiclesToSend;
+        this.crossroad = crossroad;
     }
 
     @Override
@@ -22,14 +28,38 @@ public class VehicleSender extends Thread {
                 Vehicle vehicle = vehiclesToSend.remove();
 
                 if (vehicle != null) {
-                    CrossroadEnum nextCrossroad;
-                    if(vehicle.getOriginRoad() != null){
-                        List<CrossroadEnum> path = vehicle.getPath().getPath();
-                        CrossroadEnum currentCrossroad = vehicle.getOriginRoad().getDestination();
-                        nextCrossroad = path.get(path.indexOf(currentCrossroad) + 1);
+                    // Envia o veículo para os próximos cruzamentos ao longo do seu path
+                    List<CrossroadEnum> path = vehicle.getPath().getPath();
+
+                    // Tenta encontrar a posição atual do veículo no path usando originRoad
+                    int startIndex = -1;
+                    if (vehicle.getOriginRoad() != null) {
+                        try {
+                            String[] parts = vehicle.getOriginRoad().name().split("_");
+                            if (parts.length >= 2) {
+                                String destCode = parts[1]; // ex: CR3
+                                String normalized = destCode.substring(0,1) + destCode.substring(1).toLowerCase(); // CR3 -> Cr3
+                                CrossroadEnum originCross = CrossroadEnum.valueOf(normalized);
+                                startIndex = path.indexOf(originCross);
+                            }
+                        } catch (Exception ignored) {
+                            startIndex = -1;
+                        }
                     }
-                    sendVehicle(vehicle);
-                    System.out.println("[Sender] Veículo " + vehicle.getId() + " enviado para " + vehicle);
+
+                    // Se não encontramos, começamos no início do path (index 0)
+                    if (startIndex < 0) startIndex = 0;
+
+                    for (int i = startIndex + 1; i < path.size(); i++) {
+                        CrossroadEnum nextCross = path.get(i);
+                        int port = nextCross.getPort();
+                        sendVehicleToPort(vehicle, port);
+
+                        // Atualiza a origem do veículo para a road correspondente (não obrigatoriamente usada aqui)
+                        // Se quiseres mapear a road, podemos procurar o RoadEnum correspondente.
+
+                        System.out.println("[Sender] Veículo " + vehicle.getId() + " enviado para " + nextCross + " (port=" + port + ")");
+                    }
                 }
 
                 // Pequena pausa para evitar consumo de CPU excessivo
@@ -42,23 +72,18 @@ public class VehicleSender extends Thread {
         }
     }
 
-    private void sendVehicle(Vehicle vehicle) {
-        try (Socket socket = new Socket("localhost", crossroad.getPort());
+    private void sendVehicleToPort(Vehicle vehicle, int port) {
+        try (Socket socket = new Socket("localhost", port);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
-            // Envia os campos em linhas separadas para facilitar o parsing sem usar regex
-            // Linha 1: id
-            // Linha 2: type (nome do enum VehicleTypes)
-            // Linha 3: path (nome do enum PathEnum)
+            // Envia o veículo como um todo em linhas (id, type, path, originRoad)
             out.println(vehicle.getId());
-            // send the human-friendly type string so receiver can map to VehicleTypes
             out.println(vehicle.getType() != null ? vehicle.getType().getTypeToString() : "");
             out.println(vehicle.getPath() != null ? vehicle.getPath().name() : "");
-            // Linha 4: origin road (to help the receiving crossroad place vehicle in correct queue)
             out.println(vehicle.getOriginRoad() != null ? vehicle.getOriginRoad().toString() : "");
 
         } catch (Exception e) {
-            System.err.println("[Sender] Erro ao enviar veículo para " + crossroad + ": " + e.getMessage());
+            System.err.println("[Sender] Erro ao enviar veículo para porta " + port + ": " + e.getMessage());
         }
     }
 }
