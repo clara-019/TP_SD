@@ -8,7 +8,6 @@ public class Vehicle {
     private VehicleTypes type;
     private int entranceTime;
     private int exitTime;
-    private CrossroadEnum nextCrossroad;
     private PathEnum path;
     private RoadEnum originRoad;
 
@@ -16,7 +15,6 @@ public class Vehicle {
         this.id = id;
         this.type = type;
         this.path = path;
-        this.nextCrossroad = path.getPath().get(0);
     }
 
     public String getId() {
@@ -43,10 +41,6 @@ public class Vehicle {
         this.exitTime = exitTime;
     }
 
-    public CrossroadEnum getNextCrossroad() {
-        return nextCrossroad;
-    }
-
     public PathEnum getPath() {
         return path;
     }
@@ -57,15 +51,6 @@ public class Vehicle {
 
     public void setOriginRoad(RoadEnum originRoad) {
         this.originRoad = originRoad;
-    }
-
-    public void setNextCrossroad(){
-        int currentIndex = path.getPath().indexOf(nextCrossroad);
-        if (currentIndex + 1 < path.getPath().size()) {
-            this.nextCrossroad = path.getPath().get(currentIndex + 1);
-        } else {
-            this.nextCrossroad = null;
-        }
     }
 
 
