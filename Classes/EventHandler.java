@@ -2,6 +2,7 @@ package Classes;
 
 import java.util.PriorityQueue;
 import java.util.Comparator;
+import Enums.CrossroadEnum;
 
 public class EventHandler {
     private PriorityQueue<Event> eventQueue;  // Fila de eventos por ordem de tempo
@@ -19,7 +20,7 @@ public class EventHandler {
     // Adiciona um evento à fila
     public void addEvent(Event event) {
         eventQueue.add(event);
-        System.out.println("Evento adicionado: " + event);
+        System.out.println("Evento adicionado: " + event.toString());
     }
 
     // Processa o próximo evento da fila

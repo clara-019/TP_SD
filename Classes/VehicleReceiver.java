@@ -18,6 +18,7 @@ public class VehicleReceiver extends Thread {
     private final RoadEnum road;
     private final List<SynchronizedQueue<Vehicle>> queues;
     private volatile boolean running = true;
+    private ServerSocket serverSocket;
 
     public VehicleReceiver(List<SynchronizedQueue<Vehicle>> queues, CrossroadEnum crossroad) {
         this.queues = queues;
@@ -29,89 +30,96 @@ public class VehicleReceiver extends Thread {
         this.queues = queues;
         this.road = road;
         this.crossroad = null;
-       
     }
 
-    /** Permite parar o receiver de form segura */
+    /** Para o receiver de forma segura */
     public void stopReceiver() {
         running = false;
+        try {
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+            }
+        } catch (Exception ignored) {}
         this.interrupt();
     }
 
     @Override
     public void run() {
         int port = (crossroad != null) ? crossroad.getPort() : road.getPort();
+        String receiverName = (crossroad != null ? crossroad.toString() : road.toString());
 
-        // Thread paralela para escutar mensagens na porta
-        new Thread(() -> listenForVehicles(port)).start();
+        // Thread separada para escutar ligações TCP
+        new Thread(() -> listenForVehicles(port), "ReceiverListener-" + receiverName).start();
 
-        // Thread principal processa a queue
+        // Thread principal processa a fila
         while (running) {
             for (SynchronizedQueue<Vehicle> queue : queues) {
                 Vehicle vehicle = queue.remove();
                 if (vehicle != null) {
                     System.out.printf("[%s] [Receiver-%s] Vehicle %s has crossed%n",
-                            LocalTime.now(),
-                            (crossroad != null ? crossroad : road),
-                            vehicle.getId());
+                            LocalTime.now(), receiverName, vehicle.getId());
                 }
             }
 
             try {
                 Thread.sleep(300);
             } catch (InterruptedException e) {
-                running = false; // parar de forma segura
+                running = false;
             }
         }
     }
 
     private void listenForVehicles(int port) {
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
+        String receiverName = (crossroad != null ? crossroad.toString() : road.toString());
+
+        try {
+            serverSocket = new ServerSocket(port);
             System.out.printf("[%s] [Receiver-%s] Listening on port %d%n",
-                    LocalTime.now(),
-                    (crossroad != null ? crossroad : road),
-                    port);
+                    LocalTime.now(), receiverName, port);
 
             while (running) {
                 try (Socket socket = serverSocket.accept();
                      BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-                    // Ler 3 linhas: id, type, path (evita regex e usa apenas split/enum)
+                    // Ler 3 linhas: id, type, path
                     String idLine = in.readLine();
                     String typeLine = in.readLine();
                     String pathLine = in.readLine();
 
-                    if (idLine == null || idLine.isEmpty()) {
-                        // Nada para ler
-                        continue;
-                    }
+                    if (idLine == null || idLine.isEmpty() || typeLine == null || typeLine.isEmpty()) continue;
 
                     String id = idLine.trim();
                     VehicleTypes type = VehicleTypes.getVehicleTypeFromString(typeLine);
-                    PathEnum path = PathEnum.E3_1;
+                    PathEnum path = PathEnum.E3_1; // valor por omissão
 
                     try {
                         if (pathLine != null && !pathLine.isEmpty()) {
                             path = PathEnum.valueOf(pathLine.trim());
                         }
                     } catch (IllegalArgumentException iae) {
-                        System.err.println("[Receiver] Unknown PathEnum: '" + pathLine + "', using default.");
+                        System.err.printf("[Receiver-%s] Unknown PathEnum: '%s', using default.%n", receiverName, pathLine);
                     }
 
                     Vehicle vehicle = new Vehicle(id, type, path);
 
-                    queues.get(0).add(vehicle);
+                    if (!queues.isEmpty()) {
+                        queues.get(0).add(vehicle);
+                    }
+
                     System.out.printf("[%s] [Receiver-%s] Vehicle %s received and queued%n",
-                            LocalTime.now(),
-                            (crossroad != null ? crossroad : road),
-                            vehicle.getId());
+                            LocalTime.now(), receiverName, vehicle.getId());
+
+                } catch (Exception e) {
+                    if (running) { // evita spam quando a socket é fechada para parar o receiver
+                        System.err.printf("[Receiver-%s] Error receiving vehicle: %s%n", receiverName, e.getMessage());
+                    }
                 }
             }
 
         } catch (Exception e) {
-            System.err.println("[Receiver] Error on " +
-                    (crossroad != null ? crossroad : road) +
-                    ": " + e.getMessage());
+            if (running) {
+                System.err.printf("[Receiver-%s] Server error on port %d: %s%n", receiverName, port, e.getMessage());
+            }
         }
     }
 }

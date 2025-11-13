@@ -26,11 +26,11 @@ public class Simulator {
         Vehicle truck1 = new Vehicle("TRUCK-001", VehicleTypes.TRUCK, PathEnum.E3_1);
 
         // Agenda chegada inicial dos veículos
-        eventHandler.addEvent(new Event(car1, CrossroadEnum.A, 0, "CHEGADA"));
-        eventHandler.addEvent(new Event(truck1, CrossroadEnum.B, 500, "CHEGADA"));
+        eventHandler.addEvent(new Event(car1, CrossroadEnum.Cr3, 0, "CHEGADA"));
+        eventHandler.addEvent(new Event(truck1, CrossroadEnum.Cr3, 500, "CHEGADA"));
 
         // Agenda primeiro ciclo de semáforo
-        eventHandler.addEvent(new Event(null, CrossroadEnum.A, 0, "SEMAFORO_VERDE"));
+        //eventHandler.addEvent(new Event(null, CrossroadEnum.Cr3, 0, "SEMAFORO_VERDE"));
     }
 
     // Inicia a simulação

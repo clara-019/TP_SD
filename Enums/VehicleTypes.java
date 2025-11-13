@@ -28,7 +28,7 @@ public enum VehicleTypes {
                 return type;
             }
         }
-        return null; // or throw an exception if preferred
+        return null; 
     }
     public long getTimeToPass(int temp) {
         switch (this) {
