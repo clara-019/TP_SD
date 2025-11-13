@@ -1,22 +1,18 @@
 package Classes;
 
-import Enums.CrossroadEnum;
-import Enums.VehicleTypes;
-import Enums.PathEnum;
+import Enums.*;
+import java.io.File;
 
 public class Simulator {
-    private EventHandler eventHandler;  // O gestor de eventos
-    private boolean running;           // Se a simulação está a correr
-    private Crossroad crossroad;       // O cruzamento principal
-
+    private EventHandler eventHandler; // O gestor de eventos
+    private boolean running; // Se a simulação está a correr
     // Construtor
-    public Simulator(Crossroad crossroad) {
-        this.crossroad = crossroad;
-        this.eventHandler = new EventHandler(crossroad);
+
+    public Simulator() {
         this.running = false;
 
-        // Configura eventos iniciais
-        setupInitialEvents();
+        // Initialize event handler (no specific Crossroad instance available here)
+        this.eventHandler = new EventHandler(null);
     }
 
     // Configura alguns eventos para começar a simulação
@@ -30,7 +26,8 @@ public class Simulator {
         eventHandler.addEvent(new Event(truck1, CrossroadEnum.Cr3, 500, "CHEGADA"));
 
         // Agenda primeiro ciclo de semáforo
-        //eventHandler.addEvent(new Event(null, CrossroadEnum.Cr3, 0, "SEMAFORO_VERDE"));
+        // eventHandler.addEvent(new Event(null, CrossroadEnum.Cr3, 0,
+        // "SEMAFORO_VERDE"));
     }
 
     // Inicia a simulação
@@ -39,20 +36,53 @@ public class Simulator {
             System.out.println("Simulação já está a correr!");
             return;
         }
-
         running = true;
         System.out.println("SIMULAÇÃO INICIADA!");
         System.out.println("======================");
 
-        // Processa eventos até não haver mais nenhum ou parar manualmente
-        while (running && eventHandler.hasEvents()) {
-            eventHandler.processNextEvent();
+        // Use the current JVM classpath so child processes can locate compiled classes
+        String classpath = System.getProperty("java.class.path");
+        File workDir = new File(System.getProperty("user.dir"));
 
-            // Pequena pausa para vermos o que acontece
+        for (CrossroadEnum cr : CrossroadEnum.values()) {
             try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
+                    String title = "Crossroad-" + cr.toString();
+                    // pass an explicit empty quoted title (""") so `start` treats the next token as the command
+                ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k", "java", "-cp", classpath, "Classes.Crossroad", cr.toString());
+                pb.directory(workDir);
+                pb.start();
+            } catch (Exception e) {
                 e.printStackTrace();
+            }
+            System.out.println("Iniciando processo para o cruzamento: " + cr.toString());
+        }
+
+        for (RoadEnum road : RoadEnum.values()) {
+            try {
+                    String title = "Road-" + road.toString();
+                    // pass an explicit empty quoted title (""") so `start` treats the next token as the command
+                ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k", "java", "-cp", classpath, "Classes.Road", road.toString());
+                pb.directory(workDir);
+                pb.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            System.out.println("Iniciando processo para a rua: " + road.toString());
+        }
+
+        // Setup initial events after starting processes
+        setupInitialEvents();
+
+        // Processa eventos até não haver mais nenhum ou parar manualmente
+        while (running) {
+            // process pending events (if any) and sleep to avoid busy-wait
+            try {
+                if (eventHandler.hasEvents()) {
+                    eventHandler.processNextEvent();
+                }
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                running = false;
             }
         }
 
