@@ -1,31 +1,35 @@
 package Classes;
 
-import Enums.CrossroadEnum;
+import Enums.*;
+import java.util.*;
 import java.io.PrintWriter;
 import java.net.Socket;
 
 public class VehicleSender extends Thread {
-    private final CrossroadEnum crossroad;
-    private final SynchronizedQueue<Vehicle> vehicleToSendQueue;
-    // origin is taken from vehicle.getOriginRoad() when sending; keep field for future use
+    private final SynchronizedQueue<Vehicle> vehiclesToSend;
 
-    public VehicleSender(SynchronizedQueue<Vehicle> vehicleToSendQueue, CrossroadEnum crossroad) {
-        this.vehicleToSendQueue = vehicleToSendQueue;
-        this.crossroad = crossroad;
+    public VehicleSender(SynchronizedQueue<Vehicle> vehiclesToSend) {
+        this.vehiclesToSend = vehiclesToSend;
     }
 
     @Override
     public void run() {
-        System.out.println("[Sender] A enviar veículos para " + crossroad + " (porta " + crossroad.getPort() + ")...");
+        System.out.println("[Sender] A enviar veículos");
 
         while (true) {
             try {
                 // Retira um veículo da fila (bloqueia até haver um)
-                Vehicle vehicle = vehicleToSendQueue.remove();
+                Vehicle vehicle = vehiclesToSend.remove();
 
                 if (vehicle != null) {
+                    CrossroadEnum nextCrossroad;
+                    if(vehicle.getOriginRoad() != null){
+                        List<CrossroadEnum> path = vehicle.getPath().getPath();
+                        CrossroadEnum currentCrossroad = vehicle.getOriginRoad().getDestination();
+                        nextCrossroad = path.get(path.indexOf(currentCrossroad) + 1);
+                    }
                     sendVehicle(vehicle);
-                    System.out.println("[Sender] Veículo " + vehicle.getId() + " enviado para " + crossroad);
+                    System.out.println("[Sender] Veículo " + vehicle.getId() + " enviado para " + vehicle);
                 }
 
                 // Pequena pausa para evitar consumo de CPU excessivo

@@ -15,20 +15,7 @@ public class Simulator {
         this.eventHandler = new EventHandler(null);
     }
 
-    // Configura alguns eventos para começar a simulação
-    private void setupInitialEvents() {
-        // Cria alguns veículos de exemplo
-        Vehicle car1 = new Vehicle("CAR-001", VehicleTypes.CAR, PathEnum.E3_1);
-        Vehicle truck1 = new Vehicle("TRUCK-001", VehicleTypes.TRUCK, PathEnum.E3_1);
-
-        // Agenda chegada inicial dos veículos
-        eventHandler.addEvent(new Event(car1, CrossroadEnum.Cr3, 0, "CHEGADA"));
-        eventHandler.addEvent(new Event(truck1, CrossroadEnum.Cr3, 500, "CHEGADA"));
-
-        // Agenda primeiro ciclo de semáforo
-        // eventHandler.addEvent(new Event(null, CrossroadEnum.Cr3, 0,
-        // "SEMAFORO_VERDE"));
-    }
+    
 
     // Inicia a simulação
     public void startSimulation() {
@@ -70,12 +57,11 @@ public class Simulator {
             System.out.println("Iniciando processo para a rua: " + road.toString());
         }
 
-        // Setup initial events after starting processes
-        setupInitialEvents();
+        SynchronizedQueue<Vehicle> vehiclesToSend = new SynchronizedQueue<Vehicle>();
+        new VehicleSender(vehiclesToSend).start();
+        new VehicleSpawner(vehiclesToSend, running).start();
 
-        // Processa eventos até não haver mais nenhum ou parar manualmente
         while (running) {
-            // process pending events (if any) and sleep to avoid busy-wait
             try {
                 if (eventHandler.hasEvents()) {
                     eventHandler.processNextEvent();
@@ -86,7 +72,6 @@ public class Simulator {
             }
         }
 
-        // Se chegou aqui, acabaram os eventos
         running = false;
         System.out.println("======================");
         System.out.println("SIMULAÇÃO TERMINADA!");
