@@ -16,7 +16,7 @@ public enum RoadEnum {
              * return "E2-CR2";
              */
             case E3_CR3:
-                return "E3-CR3";
+                return "E3_Cr3";
             /*
              * case CR1_CR2:
              * return "CR1-CR2";
@@ -32,7 +32,7 @@ public enum RoadEnum {
              * return "CR3-CR2";
              */
             case CR3_S:
-                return "CR3-S";
+                return "Cr3_S";
             /*
              * case CR4_CR5:
              * return "CR4-CR5";
@@ -91,11 +91,11 @@ public enum RoadEnum {
     }
 
     public CrossroadEnum getOrigin() {
-        return CrossroadEnum.toCrossroadEnum(this.toString().split("_")[0]);
+        return CrossroadEnum.toCrossroadEnum(this.toString().split("_")[0].trim());
     }
 
     public CrossroadEnum getDestination() {
-        return CrossroadEnum.toCrossroadEnum(this.toString().split("_")[1]);
+        return CrossroadEnum.toCrossroadEnum(this.toString().split("_")[1].trim());
     }
 
     public static List<RoadEnum> getRoadsToCrossroad(CrossroadEnum crossroadEnum) {

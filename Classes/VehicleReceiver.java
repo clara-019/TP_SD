@@ -85,8 +85,18 @@ public class VehicleReceiver extends Thread {
                     String idLine = in.readLine();
                     String typeLine = in.readLine();
                     String pathLine = in.readLine();
+                    String originLine = in.readLine();
 
                     if (idLine == null || idLine.isEmpty() || typeLine == null || typeLine.isEmpty()) continue;
+
+                    // optional originRoad line (sent by sender to indicate which road the vehicle came from)
+                   
+
+                    if (idLine == null || idLine.isEmpty()) {
+                        // Nada para ler
+                        continue;
+                    }
+
 
                     String id = idLine.trim();
                     VehicleTypes type = VehicleTypes.getVehicleTypeFromString(typeLine);
@@ -102,16 +112,59 @@ public class VehicleReceiver extends Thread {
 
                     Vehicle vehicle = new Vehicle(id, type, path);
 
-                    if (!queues.isEmpty()) {
-                        queues.get(0).add(vehicle);
+
+                    // If an origin was provided, try to map it
+                    RoadEnum originRoad = null;
+                    if (originLine != null && !originLine.isEmpty()) {
+                        originRoad = RoadEnum.toRoadEnum(originLine.trim());
+                        if (originRoad == null) {
+                            System.err.println("[Receiver] Unknown origin road: '" + originLine + "'");
+                        } else {
+                            vehicle.setOriginRoad(originRoad);
+                        }
                     }
 
-                    System.out.printf("[%s] [Receiver-%s] Vehicle %s received and queued%n",
-                            LocalTime.now(), receiverName, vehicle.getId());
+                    // If this receiver represents a Crossroad, route vehicle to the right traffic light queue
+                    if (crossroad != null) {
+                        // Find the queue matching the origin road (the road from which vehicle arrived)
+                        boolean queued = false;
+                        if (originRoad != null) {
+                            for (SynchronizedQueue<Vehicle> q : queues) {
+                                if (q.getRoad() != null && q.getRoad().equals(originRoad)) {
+                                    q.add(vehicle);
+                                    queued = true;
+                                    break;
+                                }
+                            }
+                        }
 
-                } catch (Exception e) {
-                    if (running) { // evita spam quando a socket é fechada para parar o receiver
-                        System.err.printf("[Receiver-%s] Error receiving vehicle: %s%n", receiverName, e.getMessage());
+                        // fallback: put in first queue if we couldn't determine origin
+                        if (!queued && !queues.isEmpty()) {
+                            queues.get(0).add(vehicle);
+                        }
+
+                        System.out.printf("[%s] [Receiver-%s] Vehicle %s received at crossroad and queued (origin=%s)%n",
+                                LocalTime.now(),
+                                crossroad,
+                                vehicle.getId(),
+                                originRoad != null ? originRoad : "unknown");
+
+                    } else {
+                        // This is a Road receiver: simulate road travel time, then enqueue for sending
+                        // Use a base road travel time (ms)
+                        final int BASE_ROAD_TRAVEL_MS = 1000;
+                        try {
+                            long sleepMs = (vehicle.getType() != null) ? vehicle.getType().getTimeToPass(BASE_ROAD_TRAVEL_MS) : BASE_ROAD_TRAVEL_MS;
+                            Thread.sleep(sleepMs);
+                        } catch (InterruptedException ie) {
+                            // ignore or stop
+                        }
+
+                        queues.get(0).add(vehicle);
+                        System.out.printf("[%s] [Receiver-%s] Vehicle %s received on road and queued after travel%n",
+                                LocalTime.now(),
+                                road,
+                                vehicle.getId());
                     }
                 }
             }

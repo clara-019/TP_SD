@@ -10,6 +10,7 @@ public class Vehicle {
     private int exitTime;
     private CrossroadEnum nextCrossroad;
     private PathEnum path;
+    private RoadEnum originRoad;
 
     public Vehicle(String id, VehicleTypes type, PathEnum path) {
         this.id = id;
@@ -48,6 +49,14 @@ public class Vehicle {
 
     public PathEnum getPath() {
         return path;
+    }
+
+    public RoadEnum getOriginRoad() {
+        return originRoad;
+    }
+
+    public void setOriginRoad(RoadEnum originRoad) {
+        this.originRoad = originRoad;
     }
 
     public void setNextCrossroad(){

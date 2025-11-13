@@ -7,6 +7,7 @@ import java.net.Socket;
 public class VehicleSender extends Thread {
     private final CrossroadEnum crossroad;
     private final SynchronizedQueue<Vehicle> vehicleToSendQueue;
+    // origin is taken from vehicle.getOriginRoad() when sending; keep field for future use
 
     public VehicleSender(SynchronizedQueue<Vehicle> vehicleToSendQueue, CrossroadEnum crossroad) {
         this.vehicleToSendQueue = vehicleToSendQueue;
@@ -46,8 +47,11 @@ public class VehicleSender extends Thread {
             // Linha 2: type (nome do enum VehicleTypes)
             // Linha 3: path (nome do enum PathEnum)
             out.println(vehicle.getId());
-            out.println(vehicle.getType() != null ? vehicle.getType().name() : "");
+            // send the human-friendly type string so receiver can map to VehicleTypes
+            out.println(vehicle.getType() != null ? vehicle.getType().getTypeToString() : "");
             out.println(vehicle.getPath() != null ? vehicle.getPath().name() : "");
+            // Linha 4: origin road (to help the receiving crossroad place vehicle in correct queue)
+            out.println(vehicle.getOriginRoad() != null ? vehicle.getOriginRoad().toString() : "");
 
         } catch (Exception e) {
             System.err.println("[Sender] Erro ao enviar veículo para " + crossroad + ": " + e.getMessage());
