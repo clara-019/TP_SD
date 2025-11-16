@@ -4,14 +4,13 @@ import java.util.*;
 
 import Comunication.VehicleReceiver;
 import Comunication.VehicleSender;
-import Event.*;
 import Road.*;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
 
-public class Crossroad{
+public class Crossroad {
     public static void main(String[] args) {
-        if(args.length == 0){
+        if (args.length == 0) {
             System.out.println("Please provide a crossroad string as an argument.");
             return;
         }
@@ -20,11 +19,15 @@ public class Crossroad{
         List<SynchronizedQueue<Vehicle>> vehicleQueues = new ArrayList<>();
         SynchronizedQueue<Vehicle> vehicleToSendQueue = new SynchronizedQueue<>();
 
-        for(RoadEnum road : roads){
-            SynchronizedQueue<Vehicle> vehicleQueue = new SynchronizedQueue<>(road);
-            TrafficLight trafficLight = new TrafficLight(vehicleToSendQueue, vehicleQueue,  road);
-            vehicleQueues.add(vehicleQueue);
-            trafficLight.start();
+        if (roads.size() > 0) {
+            for (RoadEnum road : roads) {
+                SynchronizedQueue<Vehicle> vehicleQueue = new SynchronizedQueue<>(road);
+                TrafficLight trafficLight = new TrafficLight(vehicleToSendQueue, vehicleQueue, road);
+                vehicleQueues.add(vehicleQueue);
+                trafficLight.start();
+            }
+        } else {
+            vehicleQueues.add(vehicleToSendQueue);
         }
 
         VehicleReceiver vehicleReceiver = new VehicleReceiver(vehicleQueues, crossroad);

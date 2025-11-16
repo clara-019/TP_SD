@@ -1,9 +1,12 @@
 package Vehicle;
 
+import java.io.Serializable;
+
 import Enums.*;
 import Road.RoadEnum;
 
-public class Vehicle {
+public class Vehicle implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String id;
     private VehicleTypes type;
     private int entranceTime;
@@ -52,6 +55,5 @@ public class Vehicle {
     public void setOriginRoad(RoadEnum originRoad) {
         this.originRoad = originRoad;
     }
-
 
 }

@@ -22,7 +22,7 @@ public class VehicleSpawner extends Thread {
             try {
             Vehicle newVehicle = createNewVehicle("Vehicle_" + counter);
             vehiclesToSend.add(newVehicle);
-            Thread.sleep(2000);
+            Thread.sleep(5000);
             counter++;
             } catch (InterruptedException e) {
                 e.printStackTrace();

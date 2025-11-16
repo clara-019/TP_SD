@@ -58,38 +58,39 @@ public enum RoadEnum {
         switch (this) {
             /*
              * case E1_CR1:
-             * return 7001;
+             * return 5161;
              * case E2_CR2:
-             * return 7002;
+             * return 5262;
              */
             case E3_CR3:
-                return 7003;
+                return 5363;
             /*
              * case CR1_CR2:
-             * return 8001;
+             * return 6162;
              * case CR1_CR4:
-             * return 8002;
+             * return 6164;
              * case CR2_CR1:
-             * return 8003;
+             * return 6261;
              * case CR2_CR5:
-             * return 8004;
+             * return 6265;
              * case CR2_CR3:
-             * return 8005;
+             * return 6263;
              * case CR3_CR2:
-             * return 8006;
+             * return 6362;
              */
             case CR3_S:
-                return 8007;
+                return 6370;
             /*
              * case CR4_CR5:
-             * return 8008;
+             * return 6465;
              * case CR5_S:
-             * return 8009;
+             * return 6570;
              */
             default:
                 return -1;
         }
     }
+
 
     public CrossroadEnum getOrigin() {
         return CrossroadEnum.toCrossroadEnum(this.toString().split("_")[0].trim());

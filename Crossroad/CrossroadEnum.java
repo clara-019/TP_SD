@@ -68,11 +68,9 @@ public enum CrossroadEnum {
              * return 6005;
              */
             case S:
-                return 7000;
+                return 7001;
             default:
                 return -1;
         }
     }
-
-    
 }

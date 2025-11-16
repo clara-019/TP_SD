@@ -1,12 +1,9 @@
 package Launcher;
 
-import Enums.*;
-import Event.Event;
-import Event.EventHandler;
+import Event.*;
 import Road.RoadEnum;
 import Utils.SynchronizedQueue;
-import Vehicle.Vehicle;
-import Vehicle.VehicleSpawner;
+import Vehicle.*;
 import Crossroad.*;
 import java.io.File;
 
@@ -18,7 +15,6 @@ public class Simulator {
 
     public Simulator() {
         this.running = false;
-        this.eventHandler = new EventHandler(null);
     }
 
     public void startSimulation() {
@@ -34,8 +30,9 @@ public class Simulator {
 
         for (CrossroadEnum cr : CrossroadEnum.values()) {
             try {
-                    String title = "Crossroad-" + cr.toString();
-                ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k", "java", "-cp", classpath, "Classes.Crossroad", cr.toString());
+                String title = "Crossroad-" + cr.toString();
+                ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k", "java", "-cp",
+                        classpath, "Crossroad.Crossroad", cr.toString());
                 pb.directory(workDir);
                 pb.start();
             } catch (Exception e) {
@@ -46,8 +43,9 @@ public class Simulator {
 
         for (RoadEnum road : RoadEnum.values()) {
             try {
-                    String title = "Road-" + road.toString();
-                ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k", "java", "-cp", classpath, "Classes.Road", road.toString());
+                String title = "Road-" + road.toString();
+                ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k", "java", "-cp",
+                        classpath, "Road.Road", road.toString());
                 pb.directory(workDir);
                 pb.start();
             } catch (Exception e) {
@@ -55,16 +53,17 @@ public class Simulator {
             }
             System.out.println("Iniciando processo para a rua: " + road.toString());
         }
-
+        try {
+            Thread.sleep(5000); // Espera 5 segundos para garantir que todos os processos estão iniciados
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         SynchronizedQueue<Vehicle> vehiclesToSend = new SynchronizedQueue<Vehicle>();
         new VehicleSender(vehiclesToSend).start();
         new VehicleSpawner(vehiclesToSend, running).start();
 
         while (running) {
             try {
-                if (eventHandler.hasEvents()) {
-                    eventHandler.processNextEvent();
-                }
                 Thread.sleep(200);
             } catch (InterruptedException e) {
                 running = false;

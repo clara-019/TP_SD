@@ -4,7 +4,6 @@ import java.util.*;
 
 import Comunication.VehicleReceiver;
 import Comunication.VehicleSender;
-import Enums.*;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
 import Crossroad.*;
@@ -19,12 +18,12 @@ public class Road {
         RoadEnum road = RoadEnum.toRoadEnum(args[0]);
         CrossroadEnum crossroad = road.getDestination();
         List<SynchronizedQueue<Vehicle>> vehicleQueues = new ArrayList<>();
-        SynchronizedQueue<Vehicle> vehicleToSendQueue = new SynchronizedQueue<>();
+        SynchronizedQueue<Vehicle> vehicleToSendQueue = new SynchronizedQueue<>(road);
         vehicleQueues.add(vehicleToSendQueue);
 
-        VehicleReceiver vehicleReceiver = new VehicleReceiver(vehicleQueues, crossroad);
+        VehicleReceiver vehicleReceiver = new VehicleReceiver(vehicleQueues, road);
         vehicleReceiver.start();
-        VehicleSender vehicleSender = new VehicleSender(vehicleToSendQueue, crossroad);
+        VehicleSender vehicleSender = new VehicleSender(vehicleToSendQueue);
         vehicleSender.start();
     }
 }
