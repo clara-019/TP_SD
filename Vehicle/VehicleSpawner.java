@@ -31,14 +31,11 @@ public class VehicleSpawner extends Thread {
     }
 
     private Vehicle createNewVehicle(String id){
-        // preserve provided id, randomize other attributes
         Random rnd = new Random();
 
-        // Random vehicle type
         VehicleTypes[] types = VehicleTypes.values();
         VehicleTypes type = types[rnd.nextInt(types.length)];
 
-        // Random path (choose from available PathEnum values)
         PathEnum[] paths = PathEnum.values();
         PathEnum path = paths[rnd.nextInt(paths.length)];
 
