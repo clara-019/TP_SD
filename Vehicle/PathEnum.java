@@ -1,4 +1,4 @@
-package Enums;
+package Vehicle;
 
 import java.util.*;
 import Crossroad.*;

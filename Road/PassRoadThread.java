@@ -21,7 +21,7 @@ public class PassRoadThread extends Thread {
                     Thread.sleep(passTimeMs);
                     System.out.printf("[%s] [PassRoad-%s] Vehicle %s has passed the road%n",
                             java.time.LocalTime.now(),
-                            vehicle.getOriginRoad(),
+                            vehicleQueue.getRoad(),
                             vehicle.getId());
                 }
             } catch (InterruptedException e) {

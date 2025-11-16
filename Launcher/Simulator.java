@@ -30,7 +30,6 @@ public class Simulator {
 
         for (CrossroadEnum cr : CrossroadEnum.values()) {
             try {
-                String title = "Crossroad-" + cr.toString();
                 ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k", "java", "-cp",
                         classpath, "Crossroad.Crossroad", cr.toString());
                 pb.directory(workDir);
@@ -43,7 +42,6 @@ public class Simulator {
 
         for (RoadEnum road : RoadEnum.values()) {
             try {
-                String title = "Road-" + road.toString();
                 ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k", "java", "-cp",
                         classpath, "Road.Road", road.toString());
                 pb.directory(workDir);

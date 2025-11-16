@@ -42,11 +42,6 @@ public class VehicleSender extends Thread {
                         vehicle.setOriginRoad(null);
                         sendVehicleToPort(vehicle, roadToGo.getPort());
 
-                    } else if (vehiclesToSend.getRoad() != null) {
-                        CrossroadEnum nextCross = vehiclesToSend.getRoad().getDestination();
-                        vehicle.setOriginRoad(vehiclesToSend.getRoad());
-                        sendVehicleToPort(vehicle, nextCross.getPort());
-
                     } else {
                         sendVehicleToPort(vehicle, path.get(0).getPort());
                     }
@@ -70,7 +65,8 @@ public class VehicleSender extends Thread {
 
             System.out.println("[Sender] Veículo " + vehicle.getId() + " enviado para " + port
                     + " (port=" + port + ")");
-
+            out.close();
+            socket.close();
         } catch (
 
         Exception e) {

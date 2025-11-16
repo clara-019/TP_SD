@@ -1,8 +1,5 @@
 package Crossroad;
 
-import java.util.*;
-
-import Enums.*;
 import Road.RoadEnum;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;

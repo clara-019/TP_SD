@@ -91,8 +91,7 @@ public class VehicleReceiver extends Thread {
                                 continue;
                             }
                         }
-                    } else if (road != null) {
-                        queues.get(0).add(vehicle);
+                    
                     } else {
                         vehicle.setExitTime((int) (java.time.Instant.now().getEpochSecond() & Integer.MAX_VALUE));
                     }

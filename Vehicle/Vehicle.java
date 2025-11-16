@@ -2,7 +2,6 @@ package Vehicle;
 
 import java.io.Serializable;
 
-import Enums.*;
 import Road.RoadEnum;
 
 public class Vehicle implements Serializable {
