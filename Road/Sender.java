@@ -20,7 +20,7 @@ public class Sender extends Thread {
     @Override
     public void run() {
         System.out.println("[Sender] A enviar veículos");
-        int port = road.getPort();
+        int port = road.getDestination().getPort();
 
         try {
             Socket socket = new Socket("localhost", port);
