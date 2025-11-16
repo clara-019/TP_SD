@@ -1,4 +1,4 @@
-package Road;
+package Comunication;
 
 import java.io.*;
 import java.net.*;
@@ -9,14 +9,16 @@ import Utils.SynchronizedQueue;
 import Vehicle.*;
 
 public class Receiver extends Thread {
-    private final RoadEnum road;
+    private final String receiverName;
+    private final int port;
     private final SynchronizedQueue<Vehicle> queue;
     private volatile boolean running = true;
     private ServerSocket serverSocket;
 
-    public Receiver(SynchronizedQueue<Vehicle> queue, RoadEnum road) {
+    public Receiver(SynchronizedQueue<Vehicle> queue, String receiverName, int port) {
         this.queue = queue;
-        this.road = road;
+        this.receiverName = receiverName;
+        this.port = port;
     }
 
     public void stopReceiver() {
@@ -32,21 +34,18 @@ public class Receiver extends Thread {
 
     @Override
     public void run() {
-        int port = road.getPort();
-        String receiverName = road.toString();
-
         try {
-            System.out.println("[" + receiverName + "] A receber veículos na porta " + port);
             serverSocket = new ServerSocket(port);
+
             System.out.printf("[%s] [Receiver-%s] Listening on port %d%n",
                     LocalTime.now(), receiverName, port);
 
             while (running) {
                 Socket socket = serverSocket.accept();
-                ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
-                Object obj = in.readObject();
+                Object obj = ComunicationUtils.reciveObject(socket.getInputStream());
                 Event event;
+
                 System.out.printf("[%s] [Receiver-%s] Evento recebido na porta %d: %s%n",
                         LocalTime.now(), receiverName, port, obj.toString());
 
@@ -65,6 +64,5 @@ public class Receiver extends Thread {
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-
     }
 }

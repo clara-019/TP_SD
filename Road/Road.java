@@ -2,6 +2,7 @@ package Road;
 
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
+import Comunication.Receiver;
 
 public class Road {
 
@@ -13,7 +14,7 @@ public class Road {
         RoadEnum road = RoadEnum.toRoadEnum(args[0]);
         SynchronizedQueue<Vehicle> vehicleToSendQueue = new SynchronizedQueue<>(road);
 
-        Receiver receiver = new Receiver(vehicleToSendQueue, road);
+        Receiver receiver = new Receiver(vehicleToSendQueue, road.toString(), road.getPort());
         receiver.start();
         Sender sender = new Sender(vehicleToSendQueue, road);
         sender.start();

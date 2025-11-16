@@ -1,62 +1,6 @@
-Vehicle
-Id
-Tipo
-Entrada
-Tempo de chegada
-Tempo de saida do sistema
-Caminho até à saida
-
-VehicleTypes
-Car, motorcicle e truck
-
-TrafficLight -> extende Thread
-Queue de veiculos
-Queue de veiculos a enviar
-Id
-SemaphoreLog
-
-run()
-
-CrossroadPorts
-E1, E2, E3, Cr1, Cr2, Cr3, Cr4, Cr5, S
-
-
-
-Crossroad -> extende ProcessBuilder
-Id do cruzamento
-List de semaforos
-VehicleSender
-VehicleReciver
-
-RoadPorts
-E1-CR1, E2-CR2, E3-CR3, CR1-CR2, CR1-CR4, CR2-CR1, CR2-CR5, CR2-CR3, CR3-CR2, CR3-S, CR4-CR5, CR5-S
-
-E1-CR1, CR1-S
-
-Road -> Extende ProcessBuilder
-VehicleSender
-VehicleReiciver
-Queue Vehicle
-
-VehicleSender -> Extende Thread
-Queue Vehicles para enviar
-
-VehicleReciver -> Extende Thread
-Queue Vehicle recebidos
-
-Event 
-Vehicle
-Crossroad origin
-Crossroad destination
-time
-
-Simulator
-Queue de cruzamentos
-
-Dashboard
-Simulador
-
-
-Duvidas:
-Definir as entradas no veiculo ou fazer listas diferentes de vehicles para cada entrada?
-Carros devem mudar de direção consoante o transito?
+Manter a conexão enquanto o sistema estiver a funcionar, ou cortar e apenas abrir para quando enviar um veiculo?
+Criação de classes separadas para entradas e para a saida?
+A separação dos veiculos pelos semaforos deve ser feita receiver, ou devemos utilizar uma outra thread para isso?
+É necessário definir se será feita centralização dos logs para mostrar as estatisticas ou não. Se sim, como será feita a comunicação entre cada processo e o sistema de gestão de eventos?
+Dashboard- vamos fazer algo grafico, isto é, os carrinhos a andar de um lado para o outro ou apenas logs?
+Estatisticas, como e onde são feitas?

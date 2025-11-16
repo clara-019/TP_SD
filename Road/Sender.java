@@ -4,8 +4,9 @@ import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
 import Event.*;
 
-import java.io.ObjectOutputStream;
 import java.net.Socket;
+
+import Comunication.ComunicationUtils;
 
 public class Sender extends Thread {
     private final SynchronizedQueue<Vehicle> vehiclesToSend;
@@ -23,7 +24,6 @@ public class Sender extends Thread {
 
         try {
             Socket socket = new Socket("localhost", port);
-            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 
             while (true) {
                 try {
@@ -31,7 +31,7 @@ public class Sender extends Thread {
 
                     if (vehicle != null) {
                         vehicle.setOriginRoad(vehiclesToSend.getRoad());
-                        out.writeObject(new Event(vehicle, System.currentTimeMillis()));
+                        ComunicationUtils.sendObject(socket, new Event(vehicle, System.currentTimeMillis()));
                         System.out.println("[Sender] Veículo " + vehicle.getId() + " enviado para " + port
                                 + " (port=" + port + ")");
                     }
