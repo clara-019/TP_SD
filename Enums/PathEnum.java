@@ -1,6 +1,7 @@
 package Enums;
 
 import java.util.*;
+import Crossroad.*;
 
 public enum PathEnum {
     E3_1;

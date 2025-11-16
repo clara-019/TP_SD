@@ -1,8 +1,13 @@
-package Classes;
+package Road;
 
 import java.util.*;
 
+import Comunication.VehicleReceiver;
+import Comunication.VehicleSender;
 import Enums.*;
+import Utils.SynchronizedQueue;
+import Vehicle.Vehicle;
+import Crossroad.*;
 
 public class Road {
 

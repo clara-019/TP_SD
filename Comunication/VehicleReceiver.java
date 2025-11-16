@@ -1,4 +1,4 @@
-package Classes;
+package Comunication;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -7,13 +7,16 @@ import java.net.Socket;
 import java.time.LocalTime;
 import java.util.List;
 
-import Enums.CrossroadEnum;
-import Enums.RoadEnum;
-import Enums.VehicleTypes;
-import Enums.PathEnum;
+import Crossroad.*;
+import Enums.*;
+import Road.RoadEnum;
+import Utils.SynchronizedQueue;
+import Vehicle.Vehicle;
+import Vehicle.VehicleTypes;
 
 public class VehicleReceiver extends Thread {
 
+    private static final int DEFAULT_PORT = 5000;
     private final CrossroadEnum crossroad;
     private final RoadEnum road;
     private final List<SynchronizedQueue<Vehicle>> queues;
@@ -32,6 +35,12 @@ public class VehicleReceiver extends Thread {
         this.crossroad = null;
     }
 
+    public VehicleReceiver(List<SynchronizedQueue<Vehicle>> queues) {
+        this.queues = queues;
+        this.crossroad = null;
+        this.road = null;
+    }
+
     /** Para o receiver de forma segura */
     public void stopReceiver() {
         running = false;
@@ -45,8 +54,15 @@ public class VehicleReceiver extends Thread {
 
     @Override
     public void run() {
-        int port = (crossroad != null) ? crossroad.getPort() : road.getPort();
-        String receiverName = (crossroad != null ? crossroad.toString() : road.toString());
+        int port;
+         String receiverName;
+        if(crossroad == null && road == null) {
+            port = DEFAULT_PORT;
+            receiverName = "SimulatorReceiver";
+        } else {
+            port = (crossroad != null) ? crossroad.getPort() : road.getPort();
+            receiverName = (crossroad != null) ? crossroad.toString() : road.toString();
+        }
 
         // Thread separada para escutar ligações TCP
         new Thread(() -> listenForVehicles(port), "ReceiverListener-" + receiverName).start();

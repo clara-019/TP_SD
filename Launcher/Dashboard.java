@@ -1,4 +1,4 @@
-package Classes;
+package Launcher;
 
 public class Dashboard {
     

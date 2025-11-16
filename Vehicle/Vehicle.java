@@ -1,7 +1,7 @@
-package Classes;
+package Vehicle;
 
-import java.util.List;
 import Enums.*;
+import Road.RoadEnum;
 
 public class Vehicle {
     private String id;

@@ -1,4 +1,4 @@
-package Enums;
+package Crossroad;
 
 public enum CrossroadEnum {
     /* E1, E2, */ E3, /* Cr1, Cr2, */ Cr3, /* Cr4, Cr5, */ S;

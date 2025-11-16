@@ -1,7 +1,11 @@
-package Classes;
+package Crossroad;
 
 import java.util.*;
+
 import Enums.*;
+import Road.RoadEnum;
+import Utils.SynchronizedQueue;
+import Vehicle.Vehicle;
 
 public class TrafficLight extends Thread{
     private static final int GREEN_LIGHT_DURATION_MS = 5000;

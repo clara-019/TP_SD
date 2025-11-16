@@ -1,6 +1,9 @@
-package Classes;
+package Comunication;
 
-import Enums.*;
+import Crossroad.*;
+import Utils.SynchronizedQueue;
+import Vehicle.Vehicle;
+
 import java.util.*;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -38,7 +41,9 @@ public class VehicleSender extends Thread {
                             String[] parts = vehicle.getOriginRoad().name().split("_");
                             if (parts.length >= 2) {
                                 String destCode = parts[1]; // ex: CR3
-                                String normalized = destCode.substring(0,1) + destCode.substring(1).toLowerCase(); // CR3 -> Cr3
+                                String normalized = destCode.substring(0, 1) + destCode.substring(1).toLowerCase(); // CR3
+                                                                                                                    // ->
+                                                                                                                    // Cr3
                                 CrossroadEnum originCross = CrossroadEnum.valueOf(normalized);
                                 startIndex = path.indexOf(originCross);
                             }
@@ -48,17 +53,20 @@ public class VehicleSender extends Thread {
                     }
 
                     // Se não encontramos, começamos no início do path (index 0)
-                    if (startIndex < 0) startIndex = 0;
+                    if (startIndex < 0)
+                        startIndex = 0;
 
                     for (int i = startIndex + 1; i < path.size(); i++) {
                         CrossroadEnum nextCross = path.get(i);
                         int port = nextCross.getPort();
                         sendVehicleToPort(vehicle, port);
 
-                        // Atualiza a origem do veículo para a road correspondente (não obrigatoriamente usada aqui)
+                        // Atualiza a origem do veículo para a road correspondente (não obrigatoriamente
+                        // usada aqui)
                         // Se quiseres mapear a road, podemos procurar o RoadEnum correspondente.
 
-                        System.out.println("[Sender] Veículo " + vehicle.getId() + " enviado para " + nextCross + " (port=" + port + ")");
+                        System.out.println("[Sender] Veículo " + vehicle.getId() + " enviado para " + nextCross
+                                + " (port=" + port + ")");
                     }
                 }
 
@@ -74,7 +82,7 @@ public class VehicleSender extends Thread {
 
     private void sendVehicleToPort(Vehicle vehicle, int port) {
         try (Socket socket = new Socket("localhost", port);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
             // Envia o veículo como um todo em linhas (id, type, path, originRoad)
             out.println(vehicle.getId());

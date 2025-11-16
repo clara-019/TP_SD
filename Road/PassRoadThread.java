@@ -1,6 +1,8 @@
-package Classes;
+package Road;
 
 import Enums.*;
+import Utils.*;
+import Vehicle.*;
 
 public class PassRoadThread extends Thread {
     private SynchronizedQueue<Vehicle> vehicleQueue;

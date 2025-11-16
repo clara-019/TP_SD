@@ -1,6 +1,7 @@
-package Enums;
+package Road;
 
 import java.util.*;
+import Crossroad.*;
 
 public enum RoadEnum {
     /* E1_CR1, E2_CR2, */ E3_CR3, /* CR1_CR2, CR1_CR4, CR2_CR1, CR2_CR5, CR2_CR3, CR3_CR2, */ CR3_S /*

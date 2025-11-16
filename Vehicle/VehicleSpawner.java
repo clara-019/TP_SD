@@ -1,6 +1,8 @@
-package Classes;
+package Vehicle;
 
 import Enums.*;
+import Utils.SynchronizedQueue;
+
 import java.util.Random;
 import java.time.Instant;
 

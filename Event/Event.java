@@ -1,6 +1,7 @@
-package Classes;
+package Event;
 
-import Enums.CrossroadEnum;
+import Crossroad.*;
+import Vehicle.Vehicle;
 
 public class Event {
 	private Vehicle vehicle;          // Veículo envolvido no evento

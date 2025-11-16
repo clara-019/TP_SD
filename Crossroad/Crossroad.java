@@ -1,7 +1,13 @@
-package Classes;
+package Crossroad;
 
 import java.util.*;
-import Enums.*;
+
+import Comunication.VehicleReceiver;
+import Comunication.VehicleSender;
+import Event.*;
+import Road.*;
+import Utils.SynchronizedQueue;
+import Vehicle.Vehicle;
 
 public class Crossroad{
     public static void main(String[] args) {

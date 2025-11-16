@@ -1,8 +1,12 @@
-package Classes;
+package Event;
 
 import java.util.PriorityQueue;
+
+import Crossroad.Crossroad;
+import Vehicle.Vehicle;
+
 import java.util.Comparator;
-import Enums.CrossroadEnum;
+import Crossroad.*;
 
 public class EventHandler {
     private PriorityQueue<Event> eventQueue;  // Fila de eventos por ordem de tempo
@@ -75,8 +79,7 @@ public class EventHandler {
 
         System.out.println("Veículo " + vehicle.getId() + " PARTIU de " + location);
 
-        // Atualiza o próximo cruzamento do veículo
-        vehicle.setNextCrossroad();
+
 
         // Se há próximo cruzamento, agenda chegada lá
         if (vehicle.getNextCrossroad() != null) {

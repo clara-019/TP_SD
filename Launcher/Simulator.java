@@ -1,23 +1,26 @@
-package Classes;
+package Launcher;
 
 import Enums.*;
+import Event.Event;
+import Event.EventHandler;
+import Road.RoadEnum;
+import Utils.SynchronizedQueue;
+import Vehicle.Vehicle;
+import Vehicle.VehicleSpawner;
+import Crossroad.*;
 import java.io.File;
 
+import Comunication.VehicleSender;
+
 public class Simulator {
-    private EventHandler eventHandler; // O gestor de eventos
-    private boolean running; // Se a simulação está a correr
-    // Construtor
+    private EventHandler eventHandler;
+    private boolean running;
 
     public Simulator() {
         this.running = false;
-
-        // Initialize event handler (no specific Crossroad instance available here)
         this.eventHandler = new EventHandler(null);
     }
 
-    
-
-    // Inicia a simulação
     public void startSimulation() {
         if (running) {
             System.out.println("Simulação já está a correr!");
@@ -26,15 +29,12 @@ public class Simulator {
         running = true;
         System.out.println("SIMULAÇÃO INICIADA!");
         System.out.println("======================");
-
-        // Use the current JVM classpath so child processes can locate compiled classes
         String classpath = System.getProperty("java.class.path");
         File workDir = new File(System.getProperty("user.dir"));
 
         for (CrossroadEnum cr : CrossroadEnum.values()) {
             try {
                     String title = "Crossroad-" + cr.toString();
-                    // pass an explicit empty quoted title (""") so `start` treats the next token as the command
                 ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k", "java", "-cp", classpath, "Classes.Crossroad", cr.toString());
                 pb.directory(workDir);
                 pb.start();
@@ -47,7 +47,6 @@ public class Simulator {
         for (RoadEnum road : RoadEnum.values()) {
             try {
                     String title = "Road-" + road.toString();
-                    // pass an explicit empty quoted title (""") so `start` treats the next token as the command
                 ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k", "java", "-cp", classpath, "Classes.Road", road.toString());
                 pb.directory(workDir);
                 pb.start();

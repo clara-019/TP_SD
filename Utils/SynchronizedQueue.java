@@ -1,9 +1,9 @@
-package Classes;
+package Utils;
 
 import java.util.LinkedList;
 import java.util.Queue;
 
-import Enums.RoadEnum;
+import Road.RoadEnum;
 
 public class SynchronizedQueue<E> {
     private Queue<E> queue = new LinkedList<E>();
