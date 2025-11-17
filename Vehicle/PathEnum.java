@@ -1,7 +1,8 @@
 package Vehicle;
 
 import java.util.*;
-import Crossroad.*;
+
+import Node.*;
 
 /**
  * Enumeração que define os percursos possíveis para os veículos
@@ -14,10 +15,10 @@ public enum PathEnum {
      * Retorna a sequência de cruzamentos do percurso
      * @return Lista ordenada de cruzamentos
      */
-    public List<CrossroadEnum> getPath() {
+    public List<NodeEnum> getPath() {
         switch (this) {
             case E3_CR3_S:
-                return Arrays.asList(CrossroadEnum.E3, CrossroadEnum.Cr3, CrossroadEnum.S);
+                return Arrays.asList(NodeEnum.E3, NodeEnum.Cr3, NodeEnum.S);
             default:
                 return Collections.emptyList();
         }

@@ -1,7 +1,8 @@
 package Road;
 
 import java.util.*;
-import Crossroad.*;
+
+import Node.*;
 
 /**
  * Enumeração que representa todas as estradas disponíveis no sistema
@@ -47,18 +48,18 @@ public enum RoadEnum {
      * Retorna o cruzamento de origem da estrada
      * @return Cruzamento de origem
      */
-    public CrossroadEnum getOrigin() {
+    public NodeEnum getOrigin() {
         String[] parts = this.name().split("_");
-        return CrossroadEnum.toCrossroadEnum(parts[0]);
+        return NodeEnum.toNodeEnum(parts[0]);
     }
 
     /**
      * Retorna o cruzamento de destino da estrada
      * @return Cruzamento de destino
      */
-    public CrossroadEnum getDestination() {
+    public NodeEnum getDestination() {
         String[] parts = this.name().split("_");
-        return CrossroadEnum.toCrossroadEnum(parts[1]);
+        return NodeEnum.toNodeEnum(parts[1]);
     }
 
     /**
@@ -66,7 +67,7 @@ public enum RoadEnum {
      * @param crossroadEnum Cruzamento de destino
      * @return Lista de estradas que chegam ao cruzamento
      */
-    public static List<RoadEnum> getRoadsToCrossroad(CrossroadEnum crossroadEnum) {
+    public static List<RoadEnum> getRoadsToCrossroad(NodeEnum crossroadEnum) {
         List<RoadEnum> roads = new ArrayList<>();
         for (RoadEnum road : values()) {
             if (road.getDestination() == crossroadEnum) {

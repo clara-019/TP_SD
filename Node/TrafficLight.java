@@ -1,4 +1,4 @@
-package Crossroad;
+package Node;
 
 import Road.RoadEnum;
 import Utils.SynchronizedQueue;

@@ -1,10 +1,11 @@
 package Launcher;
 
 import Event.*;
+import Node.*;
 import Road.RoadEnum;
 import Utils.SynchronizedQueue;
 import Vehicle.*;
-import Crossroad.*;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +44,7 @@ public class Simulator {
 
         // Iniciar todos os cruzamentos
         System.out.println("Iniciando cruzamentos...");
-        for (CrossroadEnum crossroad : CrossroadEnum.values()) {
+        for (NodeEnum crossroad : NodeEnum.values()) {
             startCrossroadProcess(crossroad, classpath, workDir);
         }
 
@@ -91,7 +92,7 @@ public class Simulator {
     /**
      * Inicia um processo para um cruzamento
      */
-    private void startCrossroadProcess(CrossroadEnum crossroad, String classpath, File workDir) {
+    private void startCrossroadProcess(NodeEnum crossroad, String classpath, File workDir) {
         try {
             ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k",
                     "java", "-cp", classpath, "Crossroad.Crossroad", crossroad.toString());

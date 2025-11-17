@@ -1,4 +1,4 @@
-package Crossroad;
+package Node;
 
 import java.util.*;
 
@@ -14,23 +14,23 @@ public class Crossroad {
             System.out.println("Please provide a crossroad string as an argument.");
             return;
         }
-        CrossroadEnum crossroad = CrossroadEnum.toCrossroadEnum(args[0]);
+        NodeEnum crossroad = NodeEnum.toNodeEnum(args[0]);
         List<RoadEnum> roads = RoadEnum.getRoadsToCrossroad(crossroad);
-        List<SynchronizedQueue<Vehicle>> vehicleQueues = new ArrayList<>();
+        List<SynchronizedQueue<Vehicle>> trafficQueues = new ArrayList<>();
         SynchronizedQueue<Vehicle> vehicleToSendQueue = new SynchronizedQueue<>();
 
         if (roads.size() > 0) {
             for (RoadEnum road : roads) {
                 SynchronizedQueue<Vehicle> vehicleQueue = new SynchronizedQueue<>(road);
                 TrafficLight trafficLight = new TrafficLight(vehicleToSendQueue, vehicleQueue, road);
-                vehicleQueues.add(vehicleQueue);
+                trafficQueues.add(vehicleQueue);
                 trafficLight.start();
             }
         } else {
-            vehicleQueues.add(vehicleToSendQueue);
+            trafficQueues.add(vehicleToSendQueue);
         }
 
-        VehicleReceiver vehicleReceiver = new VehicleReceiver(vehicleQueues, crossroad);
+        VehicleReceiver vehicleReceiver = new VehicleReceiver(trafficQueues, crossroad);
         vehicleReceiver.start();
         VehicleSender vehicleSender = new VehicleSender(vehicleToSendQueue, crossroad);
         vehicleSender.start();

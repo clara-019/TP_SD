@@ -1,10 +1,10 @@
 package Comunication;
 
-import Crossroad.*;
 import Road.RoadEnum;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
 import Event.*;
+import Node.*;
 
 import java.util.*;
 import java.io.ObjectOutputStream;
@@ -12,14 +12,14 @@ import java.net.Socket;
 
 public class VehicleSender extends Thread {
     private final SynchronizedQueue<Vehicle> vehiclesToSend;
-    private final CrossroadEnum crossroad;
+    private final NodeEnum crossroad;
 
     public VehicleSender(SynchronizedQueue<Vehicle> vehiclesToSend) {
         this.vehiclesToSend = vehiclesToSend;
         this.crossroad = null;
     }
 
-    public VehicleSender(SynchronizedQueue<Vehicle> vehiclesToSend, CrossroadEnum crossroad) {
+    public VehicleSender(SynchronizedQueue<Vehicle> vehiclesToSend, NodeEnum crossroad) {
         this.vehiclesToSend = vehiclesToSend;
         this.crossroad = crossroad;
     }
@@ -33,11 +33,11 @@ public class VehicleSender extends Thread {
                 Vehicle vehicle = vehiclesToSend.remove();
 
                 if (vehicle != null) {
-                    List<CrossroadEnum> path = vehicle.getPath().getPath();
+                    List<NodeEnum> path = vehicle.getPath().getPath();
 
                     if (crossroad != null && path.size() > path.indexOf(crossroad) + 1) {
 
-                        CrossroadEnum nextCross = path.get(path.indexOf(crossroad) + 1);
+                        NodeEnum nextCross = path.get(path.indexOf(crossroad) + 1);
                         RoadEnum roadToGo = RoadEnum.toRoadEnum(crossroad.toString() + "_" + nextCross.toString());
                         vehicle.setOriginRoad(null);
                         sendVehicleToPort(vehicle, roadToGo.getPort());

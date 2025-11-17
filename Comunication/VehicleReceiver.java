@@ -5,8 +5,8 @@ import java.net.*;
 import java.time.LocalTime;
 import java.util.*;
 
-import Crossroad.*;
 import Event.*;
+import Node.*;
 import Road.RoadEnum;
 import Utils.SynchronizedQueue;
 import Vehicle.*;
@@ -14,13 +14,13 @@ import Vehicle.*;
 public class VehicleReceiver extends Thread {
 
     private static final int DEFAULT_PORT = 5000;
-    private final CrossroadEnum crossroad;
+    private final NodeEnum crossroad;
     private final RoadEnum road;
     private final List<SynchronizedQueue<Vehicle>> queues;
     private volatile boolean running = true;
     private ServerSocket serverSocket;
 
-    public VehicleReceiver(List<SynchronizedQueue<Vehicle>> queues, CrossroadEnum crossroad) {
+    public VehicleReceiver(List<SynchronizedQueue<Vehicle>> queues, NodeEnum crossroad) {
         this.queues = queues;
         this.crossroad = crossroad;
         this.road = null;
@@ -88,7 +88,7 @@ public class VehicleReceiver extends Thread {
                             if (queue.getRoad() != null
                                     && vehicle.getOriginRoad().toString().equals(queue.getRoad().toString())) {
                                 queue.add(vehicle);
-                                continue;
+                                break;
                             }
                         }
                     

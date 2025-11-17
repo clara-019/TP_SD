@@ -2,11 +2,10 @@ package Event;
 
 import java.util.PriorityQueue;
 
-import Crossroad.Crossroad;
+import Node.*;
 import Vehicle.Vehicle;
 
 import java.util.Comparator;
-import Crossroad.*;
 
 public class EventHandler {
     private PriorityQueue<Event> eventQueue;  // Fila de eventos por ordem de tempo
@@ -64,7 +63,7 @@ public class EventHandler {
     // Quando um veículo chega a um cruzamento
     private void handleVehicleArrival(Event event) {
         Vehicle vehicle = event.getVehicle();
-        CrossroadEnum location = event.getLocation();
+        NodeEnum location = event.getLocation();
 
         System.out.println("Veículo " + vehicle.getId() + " CHEGOU em " + location);
 
@@ -75,7 +74,7 @@ public class EventHandler {
     // Quando um veículo parte de um cruzamento
     private void handleVehicleDeparture(Event event) {
         Vehicle vehicle = event.getVehicle();
-        CrossroadEnum location = event.getLocation();
+        NodeEnum location = event.getLocation();
 
         System.out.println("Veículo " + vehicle.getId() + " PARTIU de " + location);
 
@@ -93,7 +92,7 @@ public class EventHandler {
 
     // Quando um semáforo fica verde
     private void handleGreenLight(Event event) {
-        CrossroadEnum location = event.getLocation();
+        NodeEnum location = event.getLocation();
         System.out.println("Semáforo VERDE em " + location);
 
         // Agenda próximo ciclo do semáforo
