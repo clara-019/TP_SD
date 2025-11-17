@@ -8,13 +8,13 @@ import Crossroad.*;
  * Cada estrada conecta dois cruzamentos
  */
 public enum RoadEnum {
-    E3_CR3, CR3_S;
+    E3_Cr3, Cr3_S;
 
     /**
      * Retorna a representação em string da estrada
      */
     public String toString() {
-        return this.name().replace("_", "-");
+        return this.name();
     }
 
     /**
@@ -37,8 +37,8 @@ public enum RoadEnum {
      */
     public int getPort() {
         switch (this) {
-            case E3_CR3: return 5363;
-            case CR3_S: return 6370;
+            case E3_Cr3: return 5363;
+            case Cr3_S: return 6370;
             default: return -1;
         }
     }
