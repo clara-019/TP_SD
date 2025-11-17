@@ -2,7 +2,8 @@ package Road;
 
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
-import Comunication.Receiver;
+import Comunication.*;
+import Crossroad.*;
 
 public class Road {
 
@@ -16,7 +17,7 @@ public class Road {
 
         Receiver receiver = new Receiver(vehicleToSendQueue, road.toString(), road.getPort());
         receiver.start();
-        Sender sender = new Sender(vehicleToSendQueue, road);
+        Sender sender = new Sender(vehicleToSendQueue, road.getDestination().getPort());
         sender.start();
     }
 }

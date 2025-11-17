@@ -1,26 +1,24 @@
-package Road;
+package Comunication;
 
-import Utils.SynchronizedQueue;
-import Vehicle.Vehicle;
+import Utils.*;
+import Vehicle.*;
 import Event.*;
 
 import java.net.Socket;
 
-import Comunication.ComunicationUtils;
 
 public class Sender extends Thread {
     private final SynchronizedQueue<Vehicle> vehiclesToSend;
-    private final RoadEnum road;
+    private final int port;
 
-    public Sender(SynchronizedQueue<Vehicle> vehiclesToSend, RoadEnum road) {
+    public Sender(SynchronizedQueue<Vehicle> vehiclesToSend, int port) {
         this.vehiclesToSend = vehiclesToSend;
-        this.road = road;
+        this.port = port;
     }
 
     @Override
     public void run() {
         System.out.println("[Sender] A enviar veículos");
-        int port = road.getDestination().getPort();
 
         try {
             Socket socket = new Socket("localhost", port);

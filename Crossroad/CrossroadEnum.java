@@ -10,6 +10,7 @@ public enum CrossroadEnum {
     /**
      * Retorna a representação em string do cruzamento
      */
+    @Override
     public String toString() {
         return this.name(); // Usa o nome do enum diretamente
     }
