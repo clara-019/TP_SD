@@ -12,7 +12,7 @@ public class Road {
     }
 
     public void start() {
-        SynchronizedQueue<Vehicle> vehicleToSendQueue = new SynchronizedQueue<>(road);
+        SynchronizedQueue<Vehicle> vehicleToSendQueue = new SynchronizedQueue<>();
         new Receiver(vehicleToSendQueue, road.toString(), road.getPort()).start();
         new Sender(vehicleToSendQueue, road.getDestination().getPort()).start();
     }

@@ -1,27 +1,28 @@
 package Node;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import Comunication.*;
-import Road.*;
+import Road.RoadEnum;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
 
-public class Crossroad {
+public class Exit {
     public static void main(String[] args) {
         if (args.length == 0) {
             System.out.println("Please provide a crossroad string as an argument.");
             return;
         }
-        NodeEnum crossroad = NodeEnum.toNodeEnum(args[0]);
-        List<RoadEnum> roadsToCrossroad = RoadEnum.getRoadsToCrossroad(crossroad);
-        List<RoadEnum> roadsFromCrossroad = RoadEnum.getRoadsFromCrossroad(crossroad);
+        NodeEnum exit = NodeEnum.toNodeEnum(args[0]);
+        List<RoadEnum> roadsToCrossroad = RoadEnum.getRoadsToCrossroad(exit);
 
         Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues = new HashMap<>();
-        Map<RoadEnum, SynchronizedQueue<Vehicle>> exitQueues = new HashMap<>();
 
         SynchronizedQueue<Vehicle> vehiclesToSort = new SynchronizedQueue<>();
         SynchronizedQueue<Vehicle> vehicleToExitQueue = new SynchronizedQueue<>();
+        SynchronizedQueue<Vehicle> sampedVehiclesQueue = new SynchronizedQueue<>();
 
         for (RoadEnum road : roadsToCrossroad) {
             SynchronizedQueue<Vehicle> vehicleQueue = new SynchronizedQueue<>();
@@ -30,14 +31,16 @@ public class Crossroad {
             trafficLight.start();
         }
 
-        for (RoadEnum road : roadsFromCrossroad) {
-            SynchronizedQueue<Vehicle> exitQueue = new SynchronizedQueue<>();
-            exitQueues.put(road, exitQueue);
-            new Sender(exitQueue, road.getPort()).start();
-        }
+        new Receiver(vehiclesToSort, exit.toString(), exit.getPort()).start();
+        new TrafficSorter(trafficQueues, vehiclesToSort, exit).start();
+        new ExitTimeStamper(vehicleToExitQueue, sampedVehiclesQueue).start();
 
-        new Receiver(vehiclesToSort, crossroad.toString(), crossroad.getPort()).start();
-        new TrafficSorter(trafficQueues, vehiclesToSort, crossroad).start();
-        new ExitSorter(exitQueues, vehicleToExitQueue, crossroad).start();
+        while(true){
+            Vehicle vehicle = sampedVehiclesQueue.remove();
+            if(vehicle == null) continue;
+            System.out.println("Vehicle " + vehicle.getId() + " exited at " + vehicle.getExitTime());
+        }
+        
+
     }
 }

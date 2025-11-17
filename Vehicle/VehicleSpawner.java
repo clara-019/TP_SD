@@ -1,8 +1,9 @@
 package Vehicle;
 
 import Utils.SynchronizedQueue;
-import java.util.Random;
-import java.time.Instant;
+
+import java.util.*;
+import java.time.*;
 
 /**
  * Thread responsável por criar veículos aleatórios periodicamente
@@ -28,7 +29,6 @@ public class VehicleSpawner extends Thread {
 
         while(running){
             try {
-                // Cria um novo veículo com ID único
                 Vehicle newVehicle = createNewVehicle("V" + vehicleCounter, random);
                 vehiclesToSend.add(newVehicle);
 
@@ -55,15 +55,12 @@ public class VehicleSpawner extends Thread {
      * @return Novo veículo criado
      */
     private Vehicle createNewVehicle(String id, Random random){
-        // Seleciona tipo aleatório
         VehicleTypes[] types = VehicleTypes.values();
         VehicleTypes type = types[random.nextInt(types.length)];
 
-        // Seleciona percurso aleatório
         PathEnum[] paths = PathEnum.values();
         PathEnum path = paths[random.nextInt(paths.length)];
 
-        // Cria o veículo com timestamp de entrada
         Vehicle vehicle = new Vehicle(id, type, path);
         vehicle.setEntranceTime((int) (Instant.now().getEpochSecond() & Integer.MAX_VALUE));
 

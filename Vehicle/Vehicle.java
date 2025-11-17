@@ -2,8 +2,6 @@ package Vehicle;
 
 import java.io.Serializable;
 
-import Road.RoadEnum;
-
 public class Vehicle implements Serializable {
     private static final long serialVersionUID = 1L;
     private String id;
@@ -11,7 +9,6 @@ public class Vehicle implements Serializable {
     private int entranceTime;
     private int exitTime;
     private PathEnum path;
-    private RoadEnum originRoad;
 
     public Vehicle(String id, VehicleTypes type, PathEnum path) {
         this.id = id;
@@ -45,14 +42,6 @@ public class Vehicle implements Serializable {
 
     public PathEnum getPath() {
         return path;
-    }
-
-    public RoadEnum getOriginRoad() {
-        return originRoad;
-    }
-
-    public void setOriginRoad(RoadEnum originRoad) {
-        this.originRoad = originRoad;
     }
 
 }

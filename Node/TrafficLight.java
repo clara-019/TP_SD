@@ -33,6 +33,7 @@ public class TrafficLight extends Thread{
                         Thread.sleep(vehicle.getType().getTimeToPass(TIME_TO_PASS_MS));
                         vehicleToSendQueue.add(vehicle);
                         System.out.println("Vehicle " + vehicle.getId() + " is passing through Traffic Light: " + road.toString());
+                        System.out.println("queue size: " + vehicleQueue.isEmpty());
                     }
                 }
 

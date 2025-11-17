@@ -10,7 +10,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import Comunication.VehicleSender;
+import Comunication.*;
 
 /**
  * Classe principal que coordena toda a simulação
@@ -38,23 +38,27 @@ public class Simulator {
         System.out.println("INICIANDO SIMULAÇÃO DE TRÁFEGO 🚦");
         System.out.println("=====================================");
 
-        // Configurações
         String classpath = System.getProperty("java.class.path");
         File workDir = new File(System.getProperty("user.dir"));
 
-        // Iniciar todos os cruzamentos
         System.out.println("Iniciando cruzamentos...");
         for (NodeEnum crossroad : NodeEnum.values()) {
-            startCrossroadProcess(crossroad, classpath, workDir);
+            if(EntranceEnum.toEntranceEnum(crossroad.toString()) != null){
+                startEntranceProcess(crossroad, classpath, workDir);
+                continue;
+            }else if(ExitEnum.toExitEnum(crossroad.toString()) != null){
+                startExitProcess(crossroad, classpath, workDir);
+                continue;
+            }else{
+                startCrossroadProcess(crossroad, classpath, workDir);
+            }
         }
 
-        // Iniciar todas as estradas
         System.out.println("Iniciando estradas...");
         for (RoadEnum road : RoadEnum.values()) {
             startRoadProcess(road, classpath, workDir);
         }
 
-        // Aguardar inicialização dos componentes
         try {
             System.out.println("Aguardando inicialização dos componentes...");
             Thread.sleep(5000);
@@ -62,19 +66,17 @@ public class Simulator {
             e.printStackTrace();
         }
 
-        // Iniciar envio de veículos
+        //Funciona para já, mas é preciso alterar quando forem incluidas mais entradas
         System.out.println("Iniciando gerador de veículos...");
-        SynchronizedQueue<Vehicle> vehiclesToSend = new SynchronizedQueue<>();
-        VehicleSender vehicleSender = new VehicleSender(vehiclesToSend);
-        VehicleSpawner vehicleSpawner = new VehicleSpawner(vehiclesToSend, running, 5000);
-
-        vehicleSender.start();
-        vehicleSpawner.start();
+        SynchronizedQueue<Vehicle> vehiclesGenerated = new SynchronizedQueue<>();
+        for (EntranceEnum entrance : EntranceEnum.values()) {
+            new Sender(vehiclesGenerated, NodeEnum.toNodeEnum(entrance.toString()).getPort()).start();
+        }
+        new VehicleSpawner(vehiclesGenerated, running, 5000).start();
 
         System.out.println("Simulação totalmente inicializada!");
         System.out.println("=====================================");
 
-        // Manter simulação ativa
         while (running) {
             try {
                 Thread.sleep(1000);
@@ -83,10 +85,39 @@ public class Simulator {
             }
         }
 
-        // Encerramento
         stopAllProcesses();
         System.out.println("=====================================");
         System.out.println("SIMULAÇÃO TERMINADA!");
+    }
+
+    private void startEntranceProcess(NodeEnum entrance, String classpath, File workDir) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k",
+                    "java", "-cp", classpath, "Node.Entrance", entrance.toString());
+            pb.directory(workDir);
+            Process process = pb.start();
+            processes.add(process);
+
+            System.out.println(" Entrada " + entrance + " iniciado na porta " + entrance.getPort());
+
+        } catch (Exception e) {
+            System.err.println(" Erro ao iniciar cruzamento " + entrance + ": " + e.getMessage());
+        }
+    }
+
+    private void startExitProcess(NodeEnum exit, String classpath, File workDir) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k",
+                    "java", "-cp", classpath, "Node.Exit", exit.toString());
+            pb.directory(workDir);
+            Process process = pb.start();
+            processes.add(process);
+
+            System.out.println(" Exit " + exit + " iniciado na porta " + exit.getPort());
+
+        } catch (Exception e) {
+            System.err.println(" Erro ao iniciar cruzamento " + exit + ": " + e.getMessage());
+        }
     }
 
     /**
@@ -95,7 +126,7 @@ public class Simulator {
     private void startCrossroadProcess(NodeEnum crossroad, String classpath, File workDir) {
         try {
             ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k",
-                    "java", "-cp", classpath, "Crossroad.Crossroad", crossroad.toString());
+                    "java", "-cp", classpath, "Node.Crossroad", crossroad.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);

@@ -1,39 +1,33 @@
 package Node;
 
 import Utils.SynchronizedQueue;
-import Vehicle.Vehicle;
+import Vehicle.*;
+import Road.*;
 
 import java.util.*;
 
 public class TrafficSorter extends Thread {
-    private List<SynchronizedQueue<Vehicle>> queues;
+    private Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues;
     private SynchronizedQueue<Vehicle> vehiclesToSort;
     private NodeEnum node;
 
-    public TrafficSorter(List<SynchronizedQueue<Vehicle>> queues, SynchronizedQueue<Vehicle> vehiclesToSort,
-            NodeEnum node) {
-        this.queues = queues;
+    public TrafficSorter(Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues, SynchronizedQueue<Vehicle> vehiclesToSort, NodeEnum node) {
+        this.trafficQueues = trafficQueues;
         this.vehiclesToSort = vehiclesToSort;
         this.node = node;
     }
 
-    public void start() {
-
+    @Override
+    public void run() {
         while (true) {
-            try {
-                Vehicle vehicle = vehiclesToSort.remove();
-
-                for (SynchronizedQueue<Vehicle> queue : queues) {
-                    if (queue.getRoad() != null
-                            && vehicle.getOriginRoad().toString().equals(queue.getRoad().toString())) {
-                        queue.add(vehicle);
-                        break;
-                    }
-                }
-
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            Vehicle vehicle = vehiclesToSort.remove();
+            if (vehicle == null) continue;
+            System.out.println("[TrafficSorter " + node.toString() + "] Sorting vehicle " + vehicle.getId());
+            List<NodeEnum> path = vehicle.getPath().getPath();
+            NodeEnum previousNode = path.get(path.indexOf(node) - 1);
+            RoadEnum road = RoadEnum.toRoadEnum(previousNode.toString() + "_" + node.toString());
+            trafficQueues.get(road).add(vehicle);
         }
+
     }
 }

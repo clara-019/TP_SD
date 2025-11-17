@@ -6,7 +6,7 @@ import Node.*;
 
 /**
  * Enumeração que representa todas as estradas disponíveis no sistema
- * Cada estrada conecta dois cruzamentos
+ * Cada estrada conecta dois nós
  */
 public enum RoadEnum {
     E3_Cr3, Cr3_S;
@@ -45,8 +45,8 @@ public enum RoadEnum {
     }
 
     /**
-     * Retorna o cruzamento de origem da estrada
-     * @return Cruzamento de origem
+     * Retorna o nó de origem da estrada
+     * @return Nó de origem
      */
     public NodeEnum getOrigin() {
         String[] parts = this.name().split("_");
@@ -54,8 +54,8 @@ public enum RoadEnum {
     }
 
     /**
-     * Retorna o cruzamento de destino da estrada
-     * @return Cruzamento de destino
+     * Retorna o nó de destino da estrada
+     * @return Nó de destino
      */
     public NodeEnum getDestination() {
         String[] parts = this.name().split("_");
@@ -63,14 +63,29 @@ public enum RoadEnum {
     }
 
     /**
-     * Retorna todas as estradas que chegam a um determinado cruzamento
-     * @param crossroadEnum Cruzamento de destino
-     * @return Lista de estradas que chegam ao cruzamento
+     * Retorna todas as estradas que chegam a um determinado nó
+     * @param node Nó de destino
+     * @return Lista de estradas que chegam ao nó
      */
-    public static List<RoadEnum> getRoadsToCrossroad(NodeEnum crossroadEnum) {
+    public static List<RoadEnum> getRoadsToCrossroad(NodeEnum node) {
         List<RoadEnum> roads = new ArrayList<>();
         for (RoadEnum road : values()) {
-            if (road.getDestination() == crossroadEnum) {
+            if (road.getDestination() == node) {
+                roads.add(road);
+            }
+        }
+        return roads;
+    }
+
+    /**
+     * Retorna todas as estradas que saem de um determinado nó
+     * @param node Nó de origem
+     * @return Lista de estradas que saem do nó
+     */
+    public static List<RoadEnum> getRoadsFromCrossroad(NodeEnum node) {
+        List<RoadEnum> roads = new ArrayList<>();
+        for (RoadEnum road : values()) {
+            if (road.getOrigin() == node) {
                 roads.add(road);
             }
         }
