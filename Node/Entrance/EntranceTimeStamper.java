@@ -1,4 +1,4 @@
-package Node;
+package Node.Entrance;
 
 import Utils.SynchronizedQueue;
 import Vehicle.*;

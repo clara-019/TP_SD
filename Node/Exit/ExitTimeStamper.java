@@ -1,4 +1,4 @@
-package Node;
+package Node.Exit;
 
 import Utils.*;
 import Vehicle.*;

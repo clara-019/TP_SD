@@ -1,4 +1,4 @@
-package Node;
+package Node.Crossroad;
 
 import java.util.*;
 
@@ -6,6 +6,7 @@ import Comunication.*;
 import Road.*;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
+import Node.*;
 
 public class Crossroad {
     public static void main(String[] args) {

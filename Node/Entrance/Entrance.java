@@ -1,9 +1,10 @@
-package Node;
+package Node.Entrance;
 
 import Comunication.*;
 import Road.RoadEnum;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
+import Node.NodeEnum;
 
 public class Entrance {
     public static void main(String[] args) {

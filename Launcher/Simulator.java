@@ -87,7 +87,7 @@ public class Simulator {
     private void startEntranceProcess(NodeEnum entrance, String classpath, File workDir) {
         try {
             ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k",
-                    "java", "-cp", classpath, "Node.Entrance", entrance.toString());
+                    "java", "-cp", classpath, "Node.Entrance.Entrance", entrance.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);
@@ -102,7 +102,7 @@ public class Simulator {
     private void startExitProcess(NodeEnum exit, String classpath, File workDir) {
         try {
             ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k",
-                    "java", "-cp", classpath, "Node.Exit", exit.toString());
+                    "java", "-cp", classpath, "Node.Exit.Exit", exit.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);
@@ -120,7 +120,7 @@ public class Simulator {
     private void startCrossroadProcess(NodeEnum crossroad, String classpath, File workDir) {
         try {
             ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k",
-                    "java", "-cp", classpath, "Node.Crossroad", crossroad.toString());
+                    "java", "-cp", classpath, "Node.Crossroad.Crossroad", crossroad.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);
