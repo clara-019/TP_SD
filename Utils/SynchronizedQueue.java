@@ -8,6 +8,7 @@ public class SynchronizedQueue<E> {
 
     public synchronized void add(E element) {
         queue.add(element);
+        notifyAll();
     }
 
     public synchronized boolean isEmpty() {
@@ -15,6 +16,14 @@ public class SynchronizedQueue<E> {
     }
 
     public synchronized E remove() {
+        while (queue.isEmpty()) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+        }
         return queue.poll();
     }
 

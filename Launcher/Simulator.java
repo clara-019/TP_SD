@@ -1,6 +1,5 @@
 package Launcher;
 
-import Event.*;
 import Node.*;
 import Road.RoadEnum;
 import Utils.SynchronizedQueue;
@@ -43,13 +42,13 @@ public class Simulator {
 
         System.out.println("Iniciando cruzamentos...");
         for (NodeEnum crossroad : NodeEnum.values()) {
-            if(EntranceEnum.toEntranceEnum(crossroad.toString()) != null){
+            if (EntranceEnum.toEntranceEnum(crossroad.toString()) != null) {
                 startEntranceProcess(crossroad, classpath, workDir);
                 continue;
-            }else if(ExitEnum.toExitEnum(crossroad.toString()) != null){
+            } else if (ExitEnum.toExitEnum(crossroad.toString()) != null) {
                 startExitProcess(crossroad, classpath, workDir);
                 continue;
-            }else{
+            } else {
                 startCrossroadProcess(crossroad, classpath, workDir);
             }
         }
@@ -66,7 +65,7 @@ public class Simulator {
             e.printStackTrace();
         }
 
-        //Funciona para já, mas é preciso alterar quando forem incluidas mais entradas
+        // Funciona para já, mas é preciso alterar quando forem incluidas mais entradas
         System.out.println("Iniciando gerador de veículos...");
         SynchronizedQueue<Vehicle> vehiclesGenerated = new SynchronizedQueue<>();
         for (EntranceEnum entrance : EntranceEnum.values()) {
@@ -78,11 +77,6 @@ public class Simulator {
         System.out.println("=====================================");
 
         while (running) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                running = false;
-            }
         }
 
         stopAllProcesses();

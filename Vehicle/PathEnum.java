@@ -9,7 +9,7 @@ import Node.*;
  * Cada percurso é uma sequência de cruzamentos
  */
 public enum PathEnum {
-    E3_CR3_S; // Percurso: E3 → Cr3 → S
+    E3_CR3_S; // Percurso: E3 → CR3 → S
 
     /**
      * Retorna a sequência de cruzamentos do percurso
@@ -18,7 +18,7 @@ public enum PathEnum {
     public List<NodeEnum> getPath() {
         switch (this) {
             case E3_CR3_S:
-                return Arrays.asList(NodeEnum.E3, NodeEnum.Cr3, NodeEnum.S);
+                return Arrays.asList(NodeEnum.E3, NodeEnum.CR3, NodeEnum.S);
             default:
                 return Collections.emptyList();
         }
@@ -30,7 +30,7 @@ public enum PathEnum {
     @Override
     public String toString() {
         switch (this) {
-            case E3_CR3_S: return "E3 → Cr3 → S";
+            case E3_CR3_S: return "E3 → CR3 → S";
             default: return "Percurso Desconhecido";
         }
     }

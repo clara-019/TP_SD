@@ -5,59 +5,37 @@ package Node;
  * Cada nó tem um nome e uma porta de comunicação associada
  */
 public enum NodeEnum {
-    E3, Cr3, S; // nós disponíveis
+    E3("E", 5003),
+    CR3("Cr", 6003),
+    S("S", 7001);
 
-    /**
-     * Retorna a representação em string do node
-     */
+    private final String type;
+    private final int port;
+
+    NodeEnum(String type, int port) {
+        this.type = type;
+        this.port = port;
+    }
+
     @Override
     public String toString() {
         return this.name();
     }
 
-    /**
-     * Converte uma string para o enum correspondente
-     * 
-     * @param nodeString String a converter
-     * @return NodeEnum correspondente ou null se não existir
-     */
     public static NodeEnum toNodeEnum(String nodeString) {
         for (NodeEnum node : values()) {
-            if (node.toString().equals(nodeString)) {
+            if (node.name().equals(nodeString)) {
                 return node;
             }
         }
         return null;
     }
 
-    /**
-     * Retorna a porta de comunicação associada ao nó
-     * 
-     * @return Número da porta
-     */
     public int getPort() {
-        switch (this) {
-            case E3:
-                return 5003;
-            case Cr3:
-                return 6003;
-            case S:
-                return 7001;
-            default:
-                return -1;
-        }
+        return port;
     }
 
     public String getType() {
-        switch (this) {
-            case E3:
-                return "E";
-            case Cr3:
-                return "Cr";
-            case S:
-                return "S";
-            default:
-                return "";
-        }
+        return type;
     }
 }

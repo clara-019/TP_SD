@@ -5,6 +5,8 @@ import Vehicle.*;
 import Event.*;
 
 import java.net.Socket;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 
 public class Sender extends Thread {
     private final SynchronizedQueue<Vehicle> vehiclesToSend;
@@ -17,31 +19,54 @@ public class Sender extends Thread {
 
     @Override
     public void run() {
+        while (!Thread.currentThread().isInterrupted()) {
+            Socket socket = null;
+            try {
+                socket = new Socket("localhost", port);
+                System.out.println("[Sender] Conectado ao porto " + port + " - a enviar veículos");
 
-        try {
-            Socket socket = new Socket("localhost", port);
-            System.out.println("[Sender] A enviar veículos");
-            while (true) {
+                ObjectOutputStream out = null;
                 try {
-                    Vehicle vehicle = vehiclesToSend.remove();
-
-                    if (vehicle != null) {
-                        ComunicationUtils.sendObject(socket, new Event(vehicle, System.currentTimeMillis()));
-                        System.out.println("[Sender] Veículo " + vehicle.getId() + " enviado para " + port
-                                + " (port=" + port + ")");
+                    out = new ObjectOutputStream(socket.getOutputStream());
+                    while (!Thread.currentThread().isInterrupted()) {
+                        try {
+                            Vehicle vehicle = vehiclesToSend.remove();
+                            if (vehicle != null) {
+                                out.writeObject(new Event(vehicle, System.currentTimeMillis()));
+                                out.flush();
+                                System.out.println("[Sender] Veículo " + vehicle.getId() + " enviado para " + port);
+                            }
+                            Thread.sleep(300);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
                     }
+                } finally {
+                    if (out != null) {
+                        try {
+                            out.close();
+                        } catch (IOException ignored) {
+                        }
+                    }
+                }
 
-                    Thread.sleep(300);
-
-                } catch (InterruptedException e) {
-                    System.err.println("[Sender] Thread interrompida: " + e.getMessage());
-                    break;
+            } catch (Exception e) {
+                System.err.println("[Sender] Não foi possível conectar a localhost:" + port + " - " + e.getMessage());
+            } finally {
+                if (socket != null) {
+                    try {
+                        socket.close();
+                    } catch (IOException ignored) {
+                    }
                 }
             }
 
-            socket.close();
-        } catch (Exception e) {
-            this.run();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 }
