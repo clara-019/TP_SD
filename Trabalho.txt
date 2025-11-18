@@ -1,6 +1,3 @@
-Manter a conexão enquanto o sistema estiver a funcionar, ou cortar e apenas abrir para quando enviar um veiculo?
-Criação de classes separadas para entradas e para a saida?
-A separação dos veiculos pelos semaforos deve ser feita receiver, ou devemos utilizar uma outra thread para isso?
-É necessário definir se será feita centralização dos logs para mostrar as estatisticas ou não. Se sim, como será feita a comunicação entre cada processo e o sistema de gestão de eventos?
-Dashboard- vamos fazer algo grafico, isto é, os carrinhos a andar de um lado para o outro ou apenas logs?
-Estatisticas, como e onde são feitas?
+Relógio do sistema
+Implementar PassRoad
+Centralização dos eventos
