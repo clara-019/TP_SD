@@ -41,15 +41,15 @@ public class Simulator {
         File workDir = new File(System.getProperty("user.dir"));
 
         System.out.println("Iniciando cruzamentos...");
-        for (NodeEnum crossroad : NodeEnum.values()) {
-            if (EntranceEnum.toEntranceEnum(crossroad.toString()) != null) {
-                startEntranceProcess(crossroad, classpath, workDir);
+        for (NodeEnum node : NodeEnum.values()) {
+            if (node.getType() == NodeType.ENTRANCE) {
+                startEntranceProcess(node, classpath, workDir);
                 continue;
-            } else if (ExitEnum.toExitEnum(crossroad.toString()) != null) {
-                startExitProcess(crossroad, classpath, workDir);
+            } else if (node.getType() == NodeType.EXIT) {
+                startExitProcess(node, classpath, workDir);
                 continue;
             } else {
-                startCrossroadProcess(crossroad, classpath, workDir);
+                startCrossroadProcess(node, classpath, workDir);
             }
         }
 
@@ -68,8 +68,8 @@ public class Simulator {
         // Funciona para já, mas é preciso alterar quando forem incluidas mais entradas
         System.out.println("Iniciando gerador de veículos...");
         SynchronizedQueue<Vehicle> vehiclesGenerated = new SynchronizedQueue<>();
-        for (EntranceEnum entrance : EntranceEnum.values()) {
-            new Sender(vehiclesGenerated, NodeEnum.toNodeEnum(entrance.toString()).getPort()).start();
+        for (NodeEnum entrance : NodeEnum.getEntrances()) {
+            new Sender(vehiclesGenerated, entrance.getPort()).start();
         }
         new VehicleSpawner(vehiclesGenerated, running, 5000).start();
 

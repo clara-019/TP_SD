@@ -1,18 +1,21 @@
 package Node;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Enumeração que representa todos os nós disponíveis no sistema
  * Cada nó tem um nome e uma porta de comunicação associada
  */
 public enum NodeEnum {
-    E3("E", 5003),
-    CR3("Cr", 6003),
-    S("S", 7001);
+    E3(NodeType.ENTRANCE, 5003),
+    CR3(NodeType.CROSSROAD, 6003),
+    S(NodeType.EXIT, 7001);
 
-    private final String type;
+    private final NodeType type;
     private final int port;
 
-    NodeEnum(String type, int port) {
+    NodeEnum(NodeType type, int port) {
         this.type = type;
         this.port = port;
     }
@@ -35,7 +38,17 @@ public enum NodeEnum {
         return port;
     }
 
-    public String getType() {
+    public NodeType getType() {
         return type;
+    }
+
+    public static List<NodeEnum> getEntrances() {
+        List<NodeEnum> entrances = new ArrayList<>();
+        for (NodeEnum node : values()) {
+            if (node.getType() == NodeType.ENTRANCE) {
+                entrances.add(node);
+            }
+        }
+        return entrances;
     }
 }
