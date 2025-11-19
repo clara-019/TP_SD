@@ -30,8 +30,8 @@ public enum PathEnum {
     @Override
     public String toString() {
         switch (this) {
-            case E3_CR3_S: return "E3 → CR3 → S";
-            default: return "Percurso Desconhecido";
+            case E3_CR3_S: return "E3 -> CR3 -> S";
+            default: return "Unknown Path";
         }
     }
 }

@@ -27,18 +27,18 @@ public class Simulator {
 
     public void startSimulation() {
         if (running) {
-            System.out.println("Simulação já está em execução!");
+            System.out.println("Simulation is already running!");
             return;
         }
 
         running = true;
-        System.out.println("INICIANDO SIMULAÇÃO DE TRÁFEGO 🚦");
+        System.out.println("STARTING TRAFFIC SIMULATION");
         System.out.println("=====================================");
 
         String classpath = System.getProperty("java.class.path");
         File workDir = new File(System.getProperty("user.dir"));
 
-        System.out.println("Iniciando cruzamentos...");
+        System.out.println("Starting entrances and crossroads...");
         for (NodeEnum node : NodeEnum.values()) {
             if (node.getType() == NodeType.ENTRANCE) {
                 startEntranceProcess(node, classpath, workDir);
@@ -51,19 +51,19 @@ public class Simulator {
             }
         }
 
-        System.out.println("Iniciando estradas...");
+        System.out.println("Starting roads...");
         for (RoadEnum road : RoadEnum.values()) {
             startRoadProcess(road, classpath, workDir);
         }
 
         try {
-            System.out.println("Aguardando inicialização dos componentes...");
+            System.out.println("Waiting for component initialization...");
             Thread.sleep(5000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
-        System.out.println("Iniciando gerador de veículos...");
+        System.out.println("Starting vehicle spawner...");
         SynchronizedQueue<Vehicle> vehiclesGenerated = new SynchronizedQueue<>();
         for (NodeEnum entrance : NodeEnum.getEntrances()) {
             Sender sender = new Sender(vehiclesGenerated, entrance.getPort());
@@ -74,7 +74,7 @@ public class Simulator {
         vehicleSpawner = new VehicleSpawner(vehiclesGenerated, true, 5000);
         vehicleSpawner.start();
 
-        System.out.println("Simulação totalmente inicializada!");
+        System.out.println("Simulation fully initialized!");
         System.out.println("=====================================");
 
         while (running) {
@@ -82,7 +82,7 @@ public class Simulator {
 
         stopAllProcesses();
         System.out.println("=====================================");
-        System.out.println("SIMULAÇÃO TERMINADA!");
+        System.out.println("SIMULATION TERMINATED!");
     }
 
     private void startEntranceProcess(NodeEnum entrance, String classpath, File workDir) {
@@ -95,10 +95,10 @@ public class Simulator {
             processes.add(process);
                 processWindowTitles.add(title);
 
-            System.out.println(" Entrada " + entrance + " iniciado na porta " + entrance.getPort());
+            System.out.println(" Entrance " + entrance + " started on port " + entrance.getPort());
 
         } catch (Exception e) {
-            System.err.println(" Erro ao iniciar cruzamento " + entrance + ": " + e.getMessage());
+            System.err.println(" Error starting " + entrance + ": " + e.getMessage());
         }
     }
 
@@ -112,10 +112,10 @@ public class Simulator {
             processes.add(process);
                 processWindowTitles.add(title);
 
-            System.out.println(" Exit " + exit + " iniciado na porta " + exit.getPort());
+            System.out.println(" Exit " + exit + " started on port " + exit.getPort());
 
         } catch (Exception e) {
-            System.err.println(" Erro ao iniciar cruzamento " + exit + ": " + e.getMessage());
+            System.err.println(" Error starting " + exit + ": " + e.getMessage());
         }
     }
 
@@ -129,10 +129,10 @@ public class Simulator {
             processes.add(process);
                 processWindowTitles.add(title);
 
-            System.out.println(" Cruzamento " + crossroad + " iniciado na porta " + crossroad.getPort());
+            System.out.println(" Crossroad " + crossroad + " started on port " + crossroad.getPort());
 
         } catch (Exception e) {
-            System.err.println(" Erro ao iniciar cruzamento " + crossroad + ": " + e.getMessage());
+            System.err.println(" Error starting " + crossroad + ": " + e.getMessage());
         }
     }
 
@@ -146,18 +146,18 @@ public class Simulator {
             processes.add(process);
                 processWindowTitles.add(title);
 
-            System.out.println(" Estrada " + road + " iniciada (" +
-                    road.getOrigin() + " → " + road.getDestination() +
+            System.out.println(" Road " + road + " started (" +
+                    road.getOrigin() + " -> " + road.getDestination() +
                     ") na porta " + road.getPort());
 
         } catch (Exception e) {
-            System.err.println(" Erro ao iniciar estrada " + road + ": " + e.getMessage());
+            System.err.println(" Error starting " + road + ": " + e.getMessage());
         }
     }
 
 
     private void stopAllProcesses() {
-        System.out.println("Encerrando todos os processos...");
+        System.out.println("Stopping all processes...");
 
         try {
             if (vehicleSpawner != null && vehicleSpawner.isAlive()) {

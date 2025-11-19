@@ -23,7 +23,7 @@ public class Sender extends Thread {
             Socket socket = null;
             try {
                 socket = new Socket("localhost", port);
-                System.out.println("[Sender] Conectado ao porto " + port + " - a enviar veículos");
+                System.out.println("[Sender] Connected to port " + port + " - sending vehicles");
 
                 ObjectOutputStream out = null;
                 try {
@@ -34,7 +34,7 @@ public class Sender extends Thread {
                             if (vehicle != null) {
                                 out.writeObject(new Event(vehicle, System.currentTimeMillis()));
                                 out.flush();
-                                System.out.println("[Sender] Veículo " + vehicle.getId() + " enviado para " + port);
+                                System.out.println("[Sender] Vehicle " + vehicle.getId() + " sent to port " + port);
                             }
                             Thread.sleep(300);
                         } catch (InterruptedException e) {
@@ -52,7 +52,7 @@ public class Sender extends Thread {
                 }
 
             } catch (Exception e) {
-                System.err.println("[Sender] Não foi possível conectar a localhost:" + port + " - " + e.getMessage());
+                System.err.println("[Sender] Could not connect to localhost:" + port + " - " + e.getMessage());
             } finally {
                 if (socket != null) {
                     try {

@@ -46,7 +46,7 @@ public class Receiver extends Thread {
                 Object obj = ComunicationUtils.reciveObject(socket.getInputStream());
                 Event event;
 
-                System.out.printf("[%s] [Receiver-%s] Evento recebido na porta %d: %s%n",
+                System.out.printf("[%s] [Receiver-%s] Event received on port %d: %s%n",
                         LocalTime.now(), receiverName, port, obj.toString());
 
                 if (obj instanceof Event) {

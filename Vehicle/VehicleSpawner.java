@@ -6,8 +6,8 @@ import java.util.*;
 import java.time.*;
 
 /**
- * Thread responsável por criar veículos aleatórios periodicamente
- * Gera diferentes tipos de veículos com percursos aleatórios
+ * Thread responsible for creating random vehicles periodically
+ * Generates different types of vehicles with random paths
  */
 public class VehicleSpawner extends Thread {
     private SynchronizedQueue<Vehicle> vehiclesToSend;
@@ -25,34 +25,34 @@ public class VehicleSpawner extends Thread {
         int vehicleCounter = 0;
         Random random = new Random();
 
-        System.out.println("[VehicleSpawner] Iniciando gerador de veículos");
+        System.out.println("[VehicleSpawner] Starting vehicle spawner");
 
         while(running){
             try {
                 Vehicle newVehicle = createNewVehicle("V" + vehicleCounter, random);
                 vehiclesToSend.add(newVehicle);
 
-                System.out.println("[VehicleSpawner] Veículo criado: " + newVehicle.getId() +
-                        " Tipo: " + newVehicle.getType() +
-                        " Percurso: " + newVehicle.getPath());
+                System.out.println("[VehicleSpawner] Vehicle created: " + newVehicle.getId() +
+                        " Type: " + newVehicle.getType() +
+                        " Path: " + newVehicle.getPath());
 
                 vehicleCounter++;
                 Thread.sleep(spawnIntervalMs);
 
             } catch (InterruptedException e) {
-                System.out.println("[VehicleSpawner] Interrompido");
+                System.out.println("[VehicleSpawner] Interrupted");
                 running = false;
             }
         }
 
-        System.out.println("[VehicleSpawner] Terminado. Total de veículos criados: " + vehicleCounter);
+        System.out.println("[VehicleSpawner] Finished. Total vehicles created: " + vehicleCounter);
     }
 
     /**
-     * Cria um novo veículo com características aleatórias
-     * @param id Identificador único do veículo
-     * @param random Gerador de números aleatórios
-     * @return Novo veículo criado
+     * Creates a new vehicle with random characteristics
+     * @param id Unique vehicle identifier
+     * @param random Random number generator
+     * @return New created vehicle
      */
     private Vehicle createNewVehicle(String id, Random random){
         VehicleTypes[] types = VehicleTypes.values();
@@ -68,7 +68,7 @@ public class VehicleSpawner extends Thread {
     }
 
     /**
-     * Para a geração de veículos
+     * Stops vehicle generation
      */
     public void stopSpawning() {
         this.running = false;
