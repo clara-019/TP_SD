@@ -201,7 +201,7 @@ public class Simulator {
     }
 
     public void stopSimulation() {
-        System.out.println("Parando simulação...");
+        System.out.println("Stopped simulation...");
         stopAllProcesses();
         running = false;
     }
