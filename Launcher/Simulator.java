@@ -10,23 +10,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 import Comunication.*;
-
-/**
- * Classe principal que coordena toda a simulação
- * Inicia todos os cruzamentos, estradas e veículos
- */
 public class Simulator {
     private volatile boolean running;
     private List<Process> processes;
+    private List<Sender> senderThreads;
+    private VehicleSpawner vehicleSpawner;
+    private List<String> processWindowTitles;
 
     public Simulator() {
         this.running = false;
         this.processes = new ArrayList<>();
+        this.senderThreads = new ArrayList<>();
+        this.vehicleSpawner = null;
+        this.processWindowTitles = new ArrayList<>();
     }
 
-    /**
-     * Inicia a simulação completa
-     */
     public void startSimulation() {
         if (running) {
             System.out.println("Simulação já está em execução!");
@@ -65,13 +63,16 @@ public class Simulator {
             e.printStackTrace();
         }
 
-        // Funciona para já, mas é preciso alterar quando forem incluidas mais entradas
         System.out.println("Iniciando gerador de veículos...");
         SynchronizedQueue<Vehicle> vehiclesGenerated = new SynchronizedQueue<>();
         for (NodeEnum entrance : NodeEnum.getEntrances()) {
-            new Sender(vehiclesGenerated, entrance.getPort()).start();
+            Sender sender = new Sender(vehiclesGenerated, entrance.getPort());
+            sender.start();
+            senderThreads.add(sender);
         }
-        new VehicleSpawner(vehiclesGenerated, running, 5000).start();
+
+        vehicleSpawner = new VehicleSpawner(vehiclesGenerated, true, 5000);
+        vehicleSpawner.start();
 
         System.out.println("Simulação totalmente inicializada!");
         System.out.println("=====================================");
@@ -86,11 +87,13 @@ public class Simulator {
 
     private void startEntranceProcess(NodeEnum entrance, String classpath, File workDir) {
         try {
-            ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k",
-                    "java", "-cp", classpath, "Node.Entrance.Entrance", entrance.toString());
+                        String title = "TP_Entrance_" + entrance.toString();
+                        ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", '"' + title + '"',
+                        "java", "-cp", classpath, "Node.Entrance.Entrance", entrance.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);
+                processWindowTitles.add(title);
 
             System.out.println(" Entrada " + entrance + " iniciado na porta " + entrance.getPort());
 
@@ -101,11 +104,13 @@ public class Simulator {
 
     private void startExitProcess(NodeEnum exit, String classpath, File workDir) {
         try {
-            ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k",
-                    "java", "-cp", classpath, "Node.Exit.Exit", exit.toString());
+                        String title = "TP_Exit_" + exit.toString();
+                        ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", '"' + title + '"',
+                        "java", "-cp", classpath, "Node.Exit.Exit", exit.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);
+                processWindowTitles.add(title);
 
             System.out.println(" Exit " + exit + " iniciado na porta " + exit.getPort());
 
@@ -114,16 +119,15 @@ public class Simulator {
         }
     }
 
-    /**
-     * Inicia um processo para um cruzamento
-     */
     private void startCrossroadProcess(NodeEnum crossroad, String classpath, File workDir) {
         try {
-            ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k",
-                    "java", "-cp", classpath, "Node.Crossroad.Crossroad", crossroad.toString());
+                        String title = "TP_Crossroad_" + crossroad.toString();
+                        ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", '"' + title + '"',
+                        "java", "-cp", classpath, "Node.Crossroad.Crossroad", crossroad.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);
+                processWindowTitles.add(title);
 
             System.out.println(" Cruzamento " + crossroad + " iniciado na porta " + crossroad.getPort());
 
@@ -132,16 +136,15 @@ public class Simulator {
         }
     }
 
-    /**
-     * Inicia um processo para uma estrada
-     */
     private void startRoadProcess(RoadEnum road, String classpath, File workDir) {
         try {
-            ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "\"\"", "cmd.exe", "/k",
-                    "java", "-cp", classpath, "Road.Road", road.toString());
+                        String title = "TP_Road_" + road.toString();
+                        ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", '"' + title + '"',
+                        "java", "-cp", classpath, "Road.Road", road.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);
+                processWindowTitles.add(title);
 
             System.out.println(" Estrada " + road + " iniciada (" +
                     road.getOrigin() + " → " + road.getDestination() +
@@ -152,30 +155,58 @@ public class Simulator {
         }
     }
 
-    /**
-     * Para todos os processos em execução
-     */
+
     private void stopAllProcesses() {
         System.out.println("Encerrando todos os processos...");
-        for (Process process : processes) {
-            if (process.isAlive()) {
-                process.destroy();
+
+        try {
+            if (vehicleSpawner != null && vehicleSpawner.isAlive()) {
+                vehicleSpawner.stopSpawning();
+                try { vehicleSpawner.join(2000); } catch (InterruptedException ignored) {}
+            }
+        } catch (Exception ignored) {}
+
+        for (Thread s : senderThreads) {
+            if (s != null && s.isAlive()) {
+                s.interrupt();
+                try { s.join(1000); } catch (InterruptedException ignored) {}
             }
         }
+        senderThreads.clear();
+
+        for (Process process : processes) {
+            try {
+                if (process.isAlive()) {
+                    process.destroy();
+                    try { Thread.sleep(200); } catch (InterruptedException ignored) {}
+                    if (process.isAlive()) process.destroyForcibly();
+                }
+            } catch (Exception ignored) {}
+        }
         processes.clear();
+
+        // Ensure any cmd windows opened with `start` are closed by title
+        for (String title : processWindowTitles) {
+            try {
+                ProcessBuilder killPb = new ProcessBuilder("cmd.exe", "/c", "taskkill", "/F", "/FI", "WINDOWTITLE eq " + title);
+                killPb.redirectErrorStream(true);
+                Process killProc = killPb.start();
+                try (java.io.InputStream is = killProc.getInputStream()) {
+                    byte[] buf = new byte[1024];
+                    while (is.read(buf) > 0) {}
+                } catch (Exception ignored) {}
+            } catch (Exception ignored) {}
+        }
+        processWindowTitles.clear();
     }
 
-    /**
-     * Para a simulação
-     */
     public void stopSimulation() {
         System.out.println("Parando simulação...");
+        stopAllProcesses();
         running = false;
     }
 
-    /**
-     * Verifica se a simulação está em execução
-     */
+
     public boolean isRunning() {
         return running;
     }

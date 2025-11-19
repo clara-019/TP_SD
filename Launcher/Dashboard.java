@@ -5,9 +5,6 @@ import java.awt.*;
 import java.io.OutputStream;
 import java.io.PrintStream;
 
-/**
- * Simple Swing dashboard to start/stop the simulator and view logs.
- */
 public class Dashboard extends JFrame {
 	private final JTextArea logArea = new JTextArea();
 	private final JButton startButton = new JButton("Start Simulation");
@@ -37,7 +34,6 @@ public class Dashboard extends JFrame {
 		startButton.addActionListener(e -> startSimulation());
 		stopButton.addActionListener(e -> stopSimulation());
 
-		// Redirect System.out to the log area
 		redirectSystemOut();
 	}
 

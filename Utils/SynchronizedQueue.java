@@ -1,7 +1,6 @@
 package Utils;
 
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 
 public class SynchronizedQueue<E> {
     private Queue<E> queue = new LinkedList<E>();
