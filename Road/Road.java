@@ -22,6 +22,8 @@ public class Road {
             System.out.println("Please provide a road string as an argument.");
             return;
         }
-        new Road(RoadEnum.toRoadEnum(args[0])).start();
+        String roadId = args[0]; 
+        try { Comunication.RemoteLogAppender.install("Road_" + roadId, "localhost", Comunication.LogServer.DEFAULT_PORT); } catch (Exception ignored) {}
+        new Road(RoadEnum.toRoadEnum(roadId)).start();
     }
 }

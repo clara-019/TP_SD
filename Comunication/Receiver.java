@@ -42,27 +42,57 @@ public class Receiver extends Thread {
 
             while (running) {
                 Socket socket = serverSocket.accept();
+                new ClientHandler(socket).start();
 
-                Object obj = ComunicationUtils.reciveObject(socket.getInputStream());
-                Event event;
-
-                System.out.printf("[%s] [Receiver-%s] Event received on port %d: %s%n",
-                        LocalTime.now(), receiverName, port, obj.toString());
-
-                if (obj instanceof Event) {
-                    event = (Event) obj;
-                    Vehicle vehicle = event.getVehicle();
-                    queue.add(vehicle);
-                }
-
-                try {
-                    Thread.sleep(300);
-                } catch (InterruptedException e) {
-                    running = false;
-                }
             }
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private class ClientHandler extends Thread {
+        private final Socket socket;
+
+        ClientHandler(Socket socket) {
+            this.socket = socket;
+            setName("LogClientHandler");
+            setDaemon(true);
+        }
+
+        @Override
+        public void run() {
+            ObjectInputStream ois = null;
+            try {
+                ois = new ObjectInputStream(socket.getInputStream());
+                while (running && !socket.isClosed()) {
+                    try {
+                        Object obj = ois.readObject();
+                        if (obj == null) continue;
+                        System.out.printf("[%s] [Receiver-%s] Event received on port %d: %s%n",
+                                LocalTime.now(), receiverName, port, obj.toString());
+
+                        if (obj instanceof Event) {
+                            Event event = (Event) obj;
+                            Vehicle vehicle = event.getVehicle();
+                            queue.add(vehicle);
+                        }
+                    } catch (ClassNotFoundException cnf) {
+                        System.err.printf("[%s] [Receiver-%s] ClassNotFound: %s%n", LocalTime.now(), receiverName, cnf.getMessage());
+                        break;
+                    } catch (java.net.SocketException | java.io.EOFException se) {
+                        System.out.printf("[%s] [Receiver-%s] Connection closed on port %d: %s%n", LocalTime.now(), receiverName, port, se.getMessage());
+                        break;
+                    } catch (IOException ioe) {
+                        System.err.printf("[%s] [Receiver-%s] IO error on port %d: %s%n", LocalTime.now(), receiverName, port, ioe.getMessage());
+                        break;
+                    }
+                }
+            } catch (IOException e) {
+                System.err.printf("[%s] [Receiver-%s] Failed to create input stream on port %d: %s%n", LocalTime.now(), receiverName, port, e.getMessage());
+            } finally {
+                try { if (ois != null) ois.close(); } catch (IOException ignored) {}
+                try { if (socket != null && !socket.isClosed()) socket.close(); } catch (IOException ignored) {}
+            }
         }
     }
 }

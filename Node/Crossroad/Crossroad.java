@@ -14,7 +14,9 @@ public class Crossroad {
             System.out.println("Please provide a crossroad string as an argument.");
             return;
         }
-        NodeEnum crossroad = NodeEnum.toNodeEnum(args[0]);
+        String crossId = args[0];
+        try { Comunication.RemoteLogAppender.install("Crossroad_" + crossId, "localhost", Comunication.LogServer.DEFAULT_PORT); } catch (Exception ignored) {}
+        NodeEnum crossroad = NodeEnum.toNodeEnum(crossId);
         List<RoadEnum> roadsToCrossroad = RoadEnum.getRoadsToCrossroad(crossroad);
         List<RoadEnum> roadsFromCrossroad = RoadEnum.getRoadsFromCrossroad(crossroad);
 

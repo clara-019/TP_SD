@@ -12,7 +12,10 @@ public class Entrance {
             System.out.println("Please provide a crossroad string as an argument.");
             return;
         }
-        NodeEnum entrance = NodeEnum.toNodeEnum(args[0]);
+        String entranceId = args[0];
+        // install remote log appender so this process sends logs to central LogServer
+        try { Comunication.RemoteLogAppender.install("Entrance_" + entranceId, "localhost", Comunication.LogServer.DEFAULT_PORT); } catch (Exception ignored) {}
+        NodeEnum entrance = NodeEnum.toNodeEnum(entranceId);
 
         SynchronizedQueue<Vehicle> inconmingQueue = new SynchronizedQueue<>();
         SynchronizedQueue<Vehicle> outgoingQueue = new SynchronizedQueue<>();

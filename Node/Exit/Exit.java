@@ -16,7 +16,9 @@ public class Exit {
             System.out.println("Please provide a crossroad string as an argument.");
             return;
         }
-        NodeEnum exit = NodeEnum.toNodeEnum(args[0]);
+        String exitId = args[0];
+        try { Comunication.RemoteLogAppender.install("Exit_" + exitId, "localhost", Comunication.LogServer.DEFAULT_PORT); } catch (Exception ignored) {}
+        NodeEnum exit = NodeEnum.toNodeEnum(exitId);
         List<RoadEnum> roadsToCrossroad = RoadEnum.getRoadsToCrossroad(exit);
 
         Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues = new HashMap<>();

@@ -15,14 +15,18 @@ public class Simulator {
     private List<Process> processes;
     private List<Sender> senderThreads;
     private VehicleSpawner vehicleSpawner;
-    private List<String> processWindowTitles;
+    // processWindowTitles removed: windows are not opened anymore
+    private String javaCmd;
+    private Comunication.LogServer logServer;
+
+    public Comunication.LogServer getLogServer() { return logServer; }
 
     public Simulator() {
         this.running = false;
         this.processes = new ArrayList<>();
         this.senderThreads = new ArrayList<>();
         this.vehicleSpawner = null;
-        this.processWindowTitles = new ArrayList<>();
+        this.javaCmd = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
     }
 
     public void startSimulation() {
@@ -38,7 +42,11 @@ public class Simulator {
         String classpath = System.getProperty("java.class.path");
         File workDir = new File(System.getProperty("user.dir"));
 
-        System.out.println("Starting entrances and crossroads...");
+
+        System.out.println("Starting nodes...");
+        // start central log server so child processes can send logs via sockets
+        this.logServer = new Comunication.LogServer(Comunication.LogServer.DEFAULT_PORT);
+        this.logServer.start();
         for (NodeEnum node : NodeEnum.values()) {
             if (node.getType() == NodeType.ENTRANCE) {
                 startEntranceProcess(node, classpath, workDir);
@@ -78,6 +86,7 @@ public class Simulator {
         System.out.println("=====================================");
 
         while (running) {
+            try { Thread.sleep(200); } catch (InterruptedException ignored) {}
         }
 
         stopAllProcesses();
@@ -87,13 +96,10 @@ public class Simulator {
 
     private void startEntranceProcess(NodeEnum entrance, String classpath, File workDir) {
         try {
-                        String title = "TP_Entrance_" + entrance.toString();
-                        ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", '"' + title + '"',
-                        "java", "-cp", classpath, "Node.Entrance.Entrance", entrance.toString());
+            ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, "Node.Entrance.Entrance", entrance.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);
-                processWindowTitles.add(title);
 
             System.out.println(" Entrance " + entrance + " started on port " + entrance.getPort());
 
@@ -104,13 +110,10 @@ public class Simulator {
 
     private void startExitProcess(NodeEnum exit, String classpath, File workDir) {
         try {
-                        String title = "TP_Exit_" + exit.toString();
-                        ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", '"' + title + '"',
-                        "java", "-cp", classpath, "Node.Exit.Exit", exit.toString());
+            ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, "Node.Exit.Exit", exit.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);
-                processWindowTitles.add(title);
 
             System.out.println(" Exit " + exit + " started on port " + exit.getPort());
 
@@ -121,13 +124,10 @@ public class Simulator {
 
     private void startCrossroadProcess(NodeEnum crossroad, String classpath, File workDir) {
         try {
-                        String title = "TP_Crossroad_" + crossroad.toString();
-                        ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", '"' + title + '"',
-                        "java", "-cp", classpath, "Node.Crossroad.Crossroad", crossroad.toString());
+            ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, "Node.Crossroad.Crossroad", crossroad.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);
-                processWindowTitles.add(title);
 
             System.out.println(" Crossroad " + crossroad + " started on port " + crossroad.getPort());
 
@@ -138,13 +138,10 @@ public class Simulator {
 
     private void startRoadProcess(RoadEnum road, String classpath, File workDir) {
         try {
-                        String title = "TP_Road_" + road.toString();
-                        ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", '"' + title + '"',
-                        "java", "-cp", classpath, "Road.Road", road.toString());
+            ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, "Road.Road", road.toString());
             pb.directory(workDir);
             Process process = pb.start();
             processes.add(process);
-                processWindowTitles.add(title);
 
             System.out.println(" Road " + road + " started (" +
                     road.getOrigin() + " -> " + road.getDestination() +
@@ -185,19 +182,10 @@ public class Simulator {
         }
         processes.clear();
 
-        // Ensure any cmd windows opened with `start` are closed by title
-        for (String title : processWindowTitles) {
-            try {
-                ProcessBuilder killPb = new ProcessBuilder("cmd.exe", "/c", "taskkill", "/F", "/FI", "WINDOWTITLE eq " + title);
-                killPb.redirectErrorStream(true);
-                Process killProc = killPb.start();
-                try (java.io.InputStream is = killProc.getInputStream()) {
-                    byte[] buf = new byte[1024];
-                    while (is.read(buf) > 0) {}
-                } catch (Exception ignored) {}
-            } catch (Exception ignored) {}
-        }
-        processWindowTitles.clear();
+        // shutdown log server
+        try {
+            if (this.logServer != null) this.logServer.shutdown();
+        } catch (Exception ignored) {}
     }
 
     public void stopSimulation() {
