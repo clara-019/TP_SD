@@ -1,15 +1,8 @@
 package Comunication;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import java.io.*;
+import java.net.*;
+import java.util.*;
 /**
  * Simple TCP log server that accepts plain-text log lines in the format:
  * PROCESS|LEVEL|message
