@@ -1,4 +1,4 @@
-package Node.Exit;
+package Node;
 
 import Utils.*;
 import Vehicle.*;
@@ -23,4 +23,6 @@ public class ExitTimeStamper extends Thread {
             }
         }
     }
+
+    
 }

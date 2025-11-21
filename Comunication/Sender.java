@@ -1,71 +1,39 @@
 package Comunication;
 
-import Utils.*;
-import Vehicle.*;
-import Event.*;
-import Node.*;
-
-import java.net.Socket;
-import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.net.Socket;
 
-public class Sender extends Thread {
-    private final SynchronizedQueue<Vehicle> vehiclesToSend;
-    private final int port;
-    private final EventType eventType;
-    private final NodeEnum node;
-    public Sender(SynchronizedQueue<Vehicle> vehiclesToSend, int port, EventType eventType, NodeEnum node) {
-        this.vehiclesToSend = vehiclesToSend;
-        this.port = port;
-        this.eventType = eventType;
-        this.node = node;
+import Event.*;
+import Vehicle.Vehicle;
+import Node.NodeEnum;
+
+public class Sender {
+
+    public static void sendEvent(Event event) {
+        try {
+            Socket socket = new Socket("localhost", EventHandler.PORT);
+            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+            out.writeObject(event);
+            out.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-
-    @Override
-    public void run() {
-        while (!Thread.currentThread().isInterrupted()) {
-            Socket socket = null;
-            try {
-                socket = new Socket("localhost", port);
-                System.out.println("[Sender] Connected to port " + port + " - sending vehicles");
-
-                ObjectOutputStream out = null;
-                try {
-                    out = new ObjectOutputStream(socket.getOutputStream());
-                    while (!Thread.currentThread().isInterrupted()) {
-                        try {
-                            Vehicle vehicle = vehiclesToSend.remove();
-                            if (vehicle != null) {
-                                out.writeObject(new Event(eventType, vehicle, node, System.currentTimeMillis()));
-                                out.flush();
-                                System.out.println("[Sender] Vehicle " + vehicle.getId() + " sent to port " + port);
-                            }
-                            Thread.sleep(300);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        }
-                    }
-                } finally {
-                    if (out != null) {
-                        try {
-                            out.close();
-                        } catch (IOException ignored) {
-                        }
-                    }
-                }
-
-            } catch (Exception e) {
-                System.err.println("[Sender] Could not connect to localhost:" + port + " - " + e.getMessage());
-            } finally {
-                if (socket != null) {
-                    try {
-                        socket.close();
-                    } catch (IOException ignored) {
-                    }
-                }
-            }
+    private static void sendVehicle(Vehicle v, int destPort) {
+        try {
+            Socket socket = new Socket("localhost", destPort);
+            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+            out.writeObject(v);
+            out.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    }
+
+    public static void sendVehicleDeparture(Vehicle v, int destPort, NodeEnum node) {
+        Event event = new VehicleEvent(EventType.VEHICLE_DEPARTURE, v, node, System.currentTimeMillis());
+        sendEvent(event);
+        sendVehicle(v, destPort);
     }
 }

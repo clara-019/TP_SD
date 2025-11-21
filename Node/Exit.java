@@ -1,4 +1,4 @@
-package Node.Exit;
+package Node;
 
 import java.util.HashMap;
 import java.util.List;
@@ -8,7 +8,6 @@ import Comunication.*;
 import Road.RoadEnum;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
-import Node.*;
 
 public class Exit {
     public static void main(String[] args) {

@@ -1,13 +1,10 @@
-package Node.Entrance;
+package Node;
 
 import Comunication.*;
-import Event.EventType;
+import Event.*;
 import Road.RoadEnum;
 import Utils.SynchronizedQueue;
-import Vehicle.PathEnum;
-import Vehicle.Vehicle;
-import Vehicle.VehicleTypes;
-import Node.NodeEnum;
+import Vehicle.*;
 
 public class Entrance {
     public static void main(String[] args) {
@@ -23,16 +20,22 @@ public class Entrance {
         SynchronizedQueue<Vehicle> outgoingQueue = new SynchronizedQueue<>();
         RoadEnum road = RoadEnum.getRoadsFromCrossroad(entrance).get(0);
         int destPort = road.getDestination().getPort();
-        new Sender(outgoingQueue, destPort, EventType.NEW_VEHICLE, entrance).start();
+
+        try{
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
         while (true) {
             VehicleTypes type = VehicleTypes.values()[rnd.nextInt(VehicleTypes.values().length)];
-            Vehicle v = new Vehicle("V" + counter++, type, PathEnum.E3_CR3_S);
+            Vehicle v = new Vehicle(entrance + "-V" + counter++, type, PathEnum.E3_CR3_S);
             v.setEntranceTime((int) System.currentTimeMillis());
             outgoingQueue.add(v);
             System.out.println("[Entrance] Vehicle created: " + v.getId() +
                     " Type: " + v.getType() + " Path: " + v.getPath());
-
-            
+            Sender.sendEvent(new VehicleEvent(EventType.NEW_VEHICLE, v, entrance, System.currentTimeMillis()));
+            Sender.sendVehicleDeparture(v, destPort, entrance);
             try {
                 Thread.sleep(3500 + rnd.nextInt(1500));
             } catch (Exception e) {
