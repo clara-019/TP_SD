@@ -29,4 +29,6 @@ public class SynchronizedQueue<E> {
     public synchronized E peek(){
         return queue.peek();
     }
+
+    public synchronized int size() { return queue.size(); }
 }

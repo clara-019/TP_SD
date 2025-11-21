@@ -34,19 +34,27 @@ public class Receiver extends Thread {
 
     @Override
     public void run() {
-        try {
-            serverSocket = new ServerSocket(port);
+        int attempts = 0;
+        while (attempts < 5 && running) {
+            try {
+                serverSocket = new ServerSocket(port);
+                System.out.printf("[%s] [Receiver-%s] Listening on port %d%n",
+                        LocalTime.now(), receiverName, port);
 
-            System.out.printf("[%s] [Receiver-%s] Listening on port %d%n",
-                    LocalTime.now(), receiverName, port);
-
-            while (running) {
-                Socket socket = serverSocket.accept();
-                new ClientHandler(socket).start();
-
+                while (running) {
+                    Socket socket = serverSocket.accept();
+                    new ClientHandler(socket).start();
+                }
+                break;
+            } catch (java.net.BindException be) {
+                attempts++;
+                System.err.printf("[%s] [Receiver-%s] Port %d bind failed (attempt %d): %s%n",
+                        LocalTime.now(), receiverName, port, attempts, be.getMessage());
+                try { Thread.sleep(1000); } catch (InterruptedException ignored) { break; }
+            } catch (IOException e) {
+                e.printStackTrace();
+                break;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -76,15 +84,7 @@ public class Receiver extends Thread {
                             Vehicle vehicle = event.getVehicle();
                             queue.add(vehicle);
                         }
-                    } catch (ClassNotFoundException cnf) {
-                        System.err.printf("[%s] [Receiver-%s] ClassNotFound: %s%n", LocalTime.now(), receiverName, cnf.getMessage());
-                        break;
-                    } catch (java.net.SocketException | java.io.EOFException se) {
-                        System.out.printf("[%s] [Receiver-%s] Connection closed on port %d: %s%n", LocalTime.now(), receiverName, port, se.getMessage());
-                        break;
-                    } catch (IOException ioe) {
-                        System.err.printf("[%s] [Receiver-%s] IO error on port %d: %s%n", LocalTime.now(), receiverName, port, ioe.getMessage());
-                        break;
+                    } catch (Exception ignore) {
                     }
                 }
             } catch (IOException e) {

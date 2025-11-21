@@ -1,14 +1,10 @@
-package Comunication;
+package Event;
 
 import java.io.*;
 import java.net.*;
 import java.util.*;
-/**
- * Simple TCP log server that accepts plain-text log lines in the format:
- * PROCESS|LEVEL|message
- * It stores received lines per process and exposes a snapshot getter used by the Dashboard.
- */
-public class LogServer extends Thread {
+
+public class EventServer extends Thread {
     public static final int DEFAULT_PORT = 6000;
     private final int port;
     private volatile boolean running = true;
@@ -16,7 +12,7 @@ public class LogServer extends Thread {
 
     private final Map<String, List<String>> logs = Collections.synchronizedMap(new HashMap<>());
 
-    public LogServer(int port) {
+    public EventServer(int port) {
         this.port = port;
         setName("LogServer");
         setDaemon(true);
@@ -31,7 +27,6 @@ public class LogServer extends Thread {
                 new ClientHandler(client).start();
             }
         } catch (Exception e) {
-            // if serverSocket was closed on shutdown, ignore
             if (running) e.printStackTrace();
         }
     }

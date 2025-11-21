@@ -17,6 +17,7 @@ public class Sender extends Thread {
         this.port = port;
     }
 
+
     @Override
     public void run() {
         while (!Thread.currentThread().isInterrupted()) {
@@ -60,12 +61,6 @@ public class Sender extends Thread {
                     } catch (IOException ignored) {
                     }
                 }
-            }
-
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
             }
         }
     }

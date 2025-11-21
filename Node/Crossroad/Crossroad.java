@@ -15,7 +15,6 @@ public class Crossroad {
             return;
         }
         String crossId = args[0];
-        try { Comunication.RemoteLogAppender.install("Crossroad_" + crossId, "localhost", Comunication.LogServer.DEFAULT_PORT); } catch (Exception ignored) {}
         NodeEnum crossroad = NodeEnum.toNodeEnum(crossId);
         List<RoadEnum> roadsToCrossroad = RoadEnum.getRoadsToCrossroad(crossroad);
         List<RoadEnum> roadsFromCrossroad = RoadEnum.getRoadsFromCrossroad(crossroad);
@@ -36,7 +35,8 @@ public class Crossroad {
         for (RoadEnum road : roadsFromCrossroad) {
             SynchronizedQueue<Vehicle> exitQueue = new SynchronizedQueue<>();
             exitQueues.put(road, exitQueue);
-            new Sender(exitQueue, road.getPort()).start();
+            int destPort = road.getDestination().getPort();
+            new Sender(exitQueue, destPort).start();
         }
 
         new Receiver(vehiclesToSort, crossroad.toString(), crossroad.getPort()).start();

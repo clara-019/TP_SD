@@ -17,7 +17,7 @@ public class Exit {
             return;
         }
         String exitId = args[0];
-        try { Comunication.RemoteLogAppender.install("Exit_" + exitId, "localhost", Comunication.LogServer.DEFAULT_PORT); } catch (Exception ignored) {}
+        try { Event.EventClient.install("Exit_" + exitId, "localhost", Event.EventServer.DEFAULT_PORT); } catch (Exception ignored) {}
         NodeEnum exit = NodeEnum.toNodeEnum(exitId);
         List<RoadEnum> roadsToCrossroad = RoadEnum.getRoadsToCrossroad(exit);
 

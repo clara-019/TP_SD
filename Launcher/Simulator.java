@@ -1,31 +1,22 @@
 package Launcher;
 
 import Node.*;
-import Road.RoadEnum;
-import Utils.SynchronizedQueue;
-import Vehicle.*;
-
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-import Comunication.*;
+import Event.EventServer;
 public class Simulator {
     private volatile boolean running;
     private List<Process> processes;
-    private List<Sender> senderThreads;
-    private VehicleSpawner vehicleSpawner;
-    // processWindowTitles removed: windows are not opened anymore
+    
     private String javaCmd;
-    private Comunication.LogServer logServer;
+    private Event.EventServer logServer;
 
-    public Comunication.LogServer getLogServer() { return logServer; }
+    public Event.EventServer getLogServer() { return logServer; }
 
     public Simulator() {
         this.running = false;
         this.processes = new ArrayList<>();
-        this.senderThreads = new ArrayList<>();
-        this.vehicleSpawner = null;
         this.javaCmd = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
     }
 
@@ -34,18 +25,17 @@ public class Simulator {
             System.out.println("Simulation is already running!");
             return;
         }
-
         running = true;
+
         System.out.println("STARTING TRAFFIC SIMULATION");
         System.out.println("=====================================");
 
         String classpath = System.getProperty("java.class.path");
         File workDir = new File(System.getProperty("user.dir"));
 
-
         System.out.println("Starting nodes...");
-        // start central log server so child processes can send logs via sockets
-        this.logServer = new Comunication.LogServer(Comunication.LogServer.DEFAULT_PORT);
+        
+        this.logServer = new EventServer(EventServer.DEFAULT_PORT);
         this.logServer.start();
         for (NodeEnum node : NodeEnum.values()) {
             if (node.getType() == NodeType.ENTRANCE) {
@@ -59,28 +49,14 @@ public class Simulator {
             }
         }
 
-        System.out.println("Starting roads...");
-        for (RoadEnum road : RoadEnum.values()) {
-            startRoadProcess(road, classpath, workDir);
-        }
-
         try {
             System.out.println("Waiting for component initialization...");
-            Thread.sleep(5000);
+            Thread.sleep(3000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
-        System.out.println("Starting vehicle spawner...");
-        SynchronizedQueue<Vehicle> vehiclesGenerated = new SynchronizedQueue<>();
-        for (NodeEnum entrance : NodeEnum.getEntrances()) {
-            Sender sender = new Sender(vehiclesGenerated, entrance.getPort());
-            sender.start();
-            senderThreads.add(sender);
-        }
-
-        vehicleSpawner = new VehicleSpawner(vehiclesGenerated, true, 5000);
-        vehicleSpawner.start();
+        System.out.println("Entrances and crossroads will run as separate processes and generate/forward vehicles.");
 
         System.out.println("Simulation fully initialized!");
         System.out.println("=====================================");
@@ -136,40 +112,9 @@ public class Simulator {
         }
     }
 
-    private void startRoadProcess(RoadEnum road, String classpath, File workDir) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, "Road.Road", road.toString());
-            pb.directory(workDir);
-            Process process = pb.start();
-            processes.add(process);
-
-            System.out.println(" Road " + road + " started (" +
-                    road.getOrigin() + " -> " + road.getDestination() +
-                    ") na porta " + road.getPort());
-
-        } catch (Exception e) {
-            System.err.println(" Error starting " + road + ": " + e.getMessage());
-        }
-    }
-
 
     private void stopAllProcesses() {
         System.out.println("Stopping all processes...");
-
-        try {
-            if (vehicleSpawner != null && vehicleSpawner.isAlive()) {
-                vehicleSpawner.stopSpawning();
-                try { vehicleSpawner.join(2000); } catch (InterruptedException ignored) {}
-            }
-        } catch (Exception ignored) {}
-
-        for (Thread s : senderThreads) {
-            if (s != null && s.isAlive()) {
-                s.interrupt();
-                try { s.join(1000); } catch (InterruptedException ignored) {}
-            }
-        }
-        senderThreads.clear();
 
         for (Process process : processes) {
             try {
@@ -182,15 +127,14 @@ public class Simulator {
         }
         processes.clear();
 
-        // shutdown log server
         try {
             if (this.logServer != null) this.logServer.shutdown();
         } catch (Exception ignored) {}
     }
 
     public void stopSimulation() {
-        System.out.println("Stopped simulation...");
         stopAllProcesses();
+        System.out.println("Stopped simulation...");
         running = false;
     }
 

@@ -1,4 +1,4 @@
-package Comunication;
+package Event;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -11,7 +11,7 @@ import java.time.Instant;
  * Usage from child `main`:
  *    RemoteLogAppender.install("TP_Exit_S", "localhost", 6000);
  */
-public class RemoteLogAppender {
+public class EventClient {
     private static volatile PrintWriter writer;
     private static volatile Socket socket;
     private static String processName = "unknown";
@@ -59,6 +59,10 @@ public class RemoteLogAppender {
         if (writer != null) {
             writer.println(processName + "|" + level + "|" + msg);
         }
+    }
+
+    public static void sendMetric(String metric) {
+        sendLine("METRIC", metric);
     }
 
     public static void shutdown() {

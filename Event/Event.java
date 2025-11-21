@@ -24,6 +24,6 @@ public class Event implements Serializable {
 
 	@Override
 	public String toString() {
-		return "Evento[Veículo:" + vehicle.getId() + ", Tempo: " + time + "]";
+		return "Event[Vehicle:" + vehicle.getId() + ", time: " + time + "]";
 	}
 }

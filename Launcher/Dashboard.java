@@ -4,6 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Dashboard extends JFrame {
 	private final JTabbedPane tabs = new JTabbedPane();
@@ -13,6 +15,10 @@ public class Dashboard extends JFrame {
 
 	private Simulator simulator;
 	private Thread simulatorThread;
+
+	// Simple model for visualization: vehicleId -> position index (0 = first node, ...)
+	private final Map<String, Integer> vehiclePositions = new ConcurrentHashMap<>();
+	private final GridPanel gridPanel = new GridPanel();
 
 	public Dashboard() {
 		super("Traffic Simulator Dashboard");
@@ -29,12 +35,12 @@ public class Dashboard extends JFrame {
 
 		add(topPanel, BorderLayout.NORTH);
 		add(scrollPane, BorderLayout.CENTER);
+		add(gridPanel, BorderLayout.SOUTH);
 
 		startButton.addActionListener(e -> startSimulation());
 		stopButton.addActionListener(e -> stopSimulation());
 
 		redirectSystemOut();
-		new Thread(this::pollLogs, "Dashboard-LogPoller").start();
 	}
 
 	private void redirectSystemOut() {
@@ -111,23 +117,48 @@ public class Dashboard extends JFrame {
 		}
 	}
 
-	private void pollLogs() {
-		while (true) {
-			try {
-				Thread.sleep(1000);
-				if (simulator == null) continue;
-				Comunication.LogServer ls = simulator.getLogServer();
-				if (ls == null) continue;
-				java.util.Map<String, java.util.List<String>> batch = ls.drainLogs();
-				if (batch == null || batch.isEmpty()) continue;
-				for (java.util.Map.Entry<String, java.util.List<String>> e : batch.entrySet()) {
-					String proc = e.getKey();
-					for (String line : e.getValue()) {
-						final String out = line + System.lineSeparator();
-						SwingUtilities.invokeLater(() -> appendToTab(proc, out));
-					}
-				}
-			} catch (InterruptedException ignored) { break; } catch (Exception ignored) {}
+	private static final int GRID_HEIGHT = 160;
+
+	private class GridPanel extends JPanel {
+		public GridPanel() {
+			setPreferredSize(new Dimension(800, GRID_HEIGHT));
+		}
+
+		@Override
+		protected void paintComponent(Graphics g) {
+			super.paintComponent(g);
+			Graphics2D g2 = (Graphics2D) g;
+			int cols = 3;
+			int w = getWidth();
+			int h = getHeight();
+			int colW = w / cols;
+
+			// draw column separators and labels
+			String[] labels = new String[]{"E3", "CR3", "S"};
+			for (int i = 0; i < cols; i++) {
+				int x = i * colW;
+				g2.setColor(Color.LIGHT_GRAY);
+				g2.fillRect(x, 0, colW - 2, h);
+				g2.setColor(Color.BLACK);
+				g2.drawString(labels[i], x + 10, 15);
+			}
+
+			// draw vehicles
+			int radius = 24;
+			int y = 40;
+			int spacing = 8;
+			int colY = y;
+			for (java.util.Map.Entry<String, Integer> e : vehiclePositions.entrySet()) {
+				String id = e.getKey();
+				int col = e.getValue();
+				int cx = col * colW + 20;
+				g2.setColor(Color.ORANGE);
+				g2.fillOval(cx, colY, radius, radius);
+				g2.setColor(Color.BLACK);
+				g2.drawString(id, cx + radius + 4, colY + radius - 6);
+				colY += radius + spacing;
+				if (colY > h - 30) colY = y; // wrap
+			}
 		}
 	}
 
