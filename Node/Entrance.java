@@ -1,6 +1,7 @@
 package Node.Entrance;
 
 import Comunication.*;
+import Event.EventType;
 import Road.RoadEnum;
 import Utils.SynchronizedQueue;
 import Vehicle.PathEnum;
@@ -22,7 +23,7 @@ public class Entrance {
         SynchronizedQueue<Vehicle> outgoingQueue = new SynchronizedQueue<>();
         RoadEnum road = RoadEnum.getRoadsFromCrossroad(entrance).get(0);
         int destPort = road.getDestination().getPort();
-        new Sender(outgoingQueue, destPort).start();
+        new Sender(outgoingQueue, destPort, EventType.NEW_VEHICLE, entrance).start();
         while (true) {
             VehicleTypes type = VehicleTypes.values()[rnd.nextInt(VehicleTypes.values().length)];
             Vehicle v = new Vehicle("V" + counter++, type, PathEnum.E3_CR3_S);

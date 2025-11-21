@@ -3,6 +3,7 @@ package Comunication;
 import Utils.*;
 import Vehicle.*;
 import Event.*;
+import Node.*;
 
 import java.net.Socket;
 import java.io.IOException;
@@ -11,10 +12,13 @@ import java.io.ObjectOutputStream;
 public class Sender extends Thread {
     private final SynchronizedQueue<Vehicle> vehiclesToSend;
     private final int port;
-
-    public Sender(SynchronizedQueue<Vehicle> vehiclesToSend, int port) {
+    private final EventType eventType;
+    private final NodeEnum node;
+    public Sender(SynchronizedQueue<Vehicle> vehiclesToSend, int port, EventType eventType, NodeEnum node) {
         this.vehiclesToSend = vehiclesToSend;
         this.port = port;
+        this.eventType = eventType;
+        this.node = node;
     }
 
 
@@ -33,7 +37,7 @@ public class Sender extends Thread {
                         try {
                             Vehicle vehicle = vehiclesToSend.remove();
                             if (vehicle != null) {
-                                out.writeObject(new Event(vehicle, System.currentTimeMillis()));
+                                out.writeObject(new Event(eventType, vehicle, node, System.currentTimeMillis()));
                                 out.flush();
                                 System.out.println("[Sender] Vehicle " + vehicle.getId() + " sent to port " + port);
                             }

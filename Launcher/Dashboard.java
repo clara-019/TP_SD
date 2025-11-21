@@ -16,7 +16,6 @@ public class Dashboard extends JFrame {
 	private Simulator simulator;
 	private Thread simulatorThread;
 
-	// Simple model for visualization: vehicleId -> position index (0 = first node, ...)
 	private final Map<String, Integer> vehiclePositions = new ConcurrentHashMap<>();
 	private final GridPanel gridPanel = new GridPanel();
 

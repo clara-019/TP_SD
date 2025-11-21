@@ -1,0 +1,9 @@
+package Event;
+
+public enum EventType {
+    TRAFFIC_LIGHT_CHANGE,
+    NEW_VEHICLE,
+    VEHICLE_ARRIVAL,
+    VEHICLE_DEPARTURE,
+    VEHICLE_EXIT
+}

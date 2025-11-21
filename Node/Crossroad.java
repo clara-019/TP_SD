@@ -7,6 +7,7 @@ import Road.*;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
 import Node.*;
+import Event.*;
 
 public class Crossroad {
     public static void main(String[] args) {
@@ -36,7 +37,7 @@ public class Crossroad {
             SynchronizedQueue<Vehicle> exitQueue = new SynchronizedQueue<>();
             exitQueues.put(road, exitQueue);
             int destPort = road.getDestination().getPort();
-            new Sender(exitQueue, destPort).start();
+            new Sender(exitQueue, destPort, EventType.VEHICLE_DEPARTURE, crossroad).start();
         }
 
         new Receiver(vehiclesToSort, crossroad.toString(), crossroad.getPort()).start();

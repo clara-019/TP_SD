@@ -1,29 +1,29 @@
 package Event;
 
-import java.io.Serializable;
-
+import Node.NodeEnum;
 import Vehicle.Vehicle;
 
-public class Event implements Serializable {
-	private static final long serialVersionUID = 1L;
-	private Vehicle vehicle;
-	private long time;
+public class Event implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+    private final EventType type;
+    private final Vehicle vehicle;
+    private final NodeEnum node;
+    private final long time; 
 
-	public Event(Vehicle vehicle, long time) {
-		this.vehicle = vehicle;
-		this.time = time;
-	}
+    public Event(EventType type, Vehicle vehicle, NodeEnum node, long time) {
+        this.type = type;
+        this.vehicle = vehicle;
+        this.node = node;
+        this.time = time;
+    }
 
-	public Vehicle getVehicle() {
-		return vehicle;
-	}
+    public EventType getType() { return type; }
+    public Vehicle getVehicle() { return vehicle; }
+    public NodeEnum getNode() { return node; }
+    public long getTime() { return time; }
 
-	public long getTime() {
-		return time;
-	}
-
-	@Override
-	public String toString() {
-		return "Event[Vehicle:" + vehicle.getId() + ", time: " + time + "]";
-	}
+    @Override
+    public String toString() {
+        return String.format("Event[type=%s, veh=%s, node=%s, time=%d]", type, vehicle==null? "null":vehicle.getId(), node, time);
+    }
 }
