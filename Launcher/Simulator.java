@@ -1,12 +1,18 @@
 package Launcher;
 
 import Node.*;
+
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.PriorityBlockingQueue;
+
+import Event.*;
 
 public class Simulator {
     private volatile boolean running;
     private List<Process> processes;
+
+    private PriorityBlockingQueue<Event> eventQueue = new PriorityBlockingQueue<Event>(10, Comparator.comparingLong(Event::getLogicalClock));
     
     private String javaCmd;
 
@@ -28,6 +34,8 @@ public class Simulator {
 
         String classpath = System.getProperty("java.class.path");
         File workDir = new File(System.getProperty("user.dir"));
+
+        new EventHandler(eventQueue).start();
 
         System.out.println("Starting nodes...");
         for (NodeEnum node : NodeEnum.values()) {
@@ -132,5 +140,9 @@ public class Simulator {
 
     public boolean isRunning() {
         return running;
+    }
+
+    public PriorityBlockingQueue<Event> getEventQueue() {
+        return eventQueue;
     }
 }

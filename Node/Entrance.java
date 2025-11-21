@@ -3,7 +3,7 @@ package Node;
 import Comunication.*;
 import Event.*;
 import Road.RoadEnum;
-import Utils.SynchronizedQueue;
+import Utils.*;
 import Vehicle.*;
 
 public class Entrance {
@@ -14,10 +14,18 @@ public class Entrance {
         }
         String entranceId = args[0];
         NodeEnum entrance = NodeEnum.toNodeEnum(entranceId);
+
+        if (entrance == null || entrance.getType() != NodeType.ENTRANCE) {
+            System.out.println("Invalid entrance node: " + entranceId);
+            return;
+        }
+
         java.util.Random rnd = new java.util.Random();
         int counter = 0;
+        LogicalClock clock = new LogicalClock();
 
         SynchronizedQueue<Vehicle> outgoingQueue = new SynchronizedQueue<>();
+
         RoadEnum road = RoadEnum.getRoadsFromCrossroad(entrance).get(0);
         int destPort = road.getDestination().getPort();
 
@@ -30,12 +38,15 @@ public class Entrance {
         while (true) {
             VehicleTypes type = VehicleTypes.values()[rnd.nextInt(VehicleTypes.values().length)];
             Vehicle v = new Vehicle(entrance + "-V" + counter++, type, PathEnum.E3_CR3_S);
-            v.setEntranceTime((int) System.currentTimeMillis());
             outgoingQueue.add(v);
+
             System.out.println("[Entrance] Vehicle created: " + v.getId() +
                     " Type: " + v.getType() + " Path: " + v.getPath());
-            Sender.sendEvent(new VehicleEvent(EventType.NEW_VEHICLE, v, entrance, System.currentTimeMillis()));
-            Sender.sendVehicleDeparture(v, destPort, entrance);
+
+            long clockTime = clock.tick();
+            Sender.sendToEventHandler(new VehicleEvent(EventType.NEW_VEHICLE, v, entrance, clockTime));
+            Sender.sendVehicleDeparture(v, destPort, entrance, clock);
+            
             try {
                 Thread.sleep(3500 + rnd.nextInt(1500));
             } catch (Exception e) {

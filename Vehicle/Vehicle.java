@@ -6,8 +6,8 @@ public class Vehicle implements Serializable {
     private static final long serialVersionUID = 1L;
     private String id;
     private VehicleTypes type;
-    private int entranceTime;
-    private int exitTime;
+    private long entranceTime;
+    private long exitTime;
     private PathEnum path;
 
     public Vehicle(String id, VehicleTypes type, PathEnum path) {
@@ -24,19 +24,19 @@ public class Vehicle implements Serializable {
         return type;
     }
 
-    public int getEntranceTime() {
+    public long getEntranceTime() {
         return entranceTime;
     }
 
-    public void setEntranceTime(int entranceTime) {
+    public void setEntranceTime(long entranceTime) {
         this.entranceTime = entranceTime;
     }
 
-    public int getExitTime() {
+    public long getExitTime() {
         return exitTime;
     }
 
-    public void setExitTime(int exitTime) {
+    public void setExitTime(long exitTime) {
         this.exitTime = exitTime;
     }
 

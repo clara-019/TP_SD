@@ -6,34 +6,39 @@ import java.net.Socket;
 import Event.*;
 import Vehicle.Vehicle;
 import Node.NodeEnum;
+import Utils.LogicalClock;
 
-public class Sender {
+public class Sender{
 
-    public static void sendEvent(Event event) {
+    public static void sendToEventHandler(Event event) {
         try {
             Socket socket = new Socket("localhost", EventHandler.PORT);
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             out.writeObject(event);
             out.flush();
+            out.close();
+            socket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static void sendVehicle(Vehicle v, int destPort) {
+    private static void sendVehicle(Event event, int destPort) {
         try {
             Socket socket = new Socket("localhost", destPort);
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            out.writeObject(v);
+            out.writeObject(event);
             out.flush();
+            out.close();
+            socket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public static void sendVehicleDeparture(Vehicle v, int destPort, NodeEnum node) {
-        Event event = new VehicleEvent(EventType.VEHICLE_DEPARTURE, v, node, System.currentTimeMillis());
-        sendEvent(event);
-        sendVehicle(v, destPort);
+    public static void sendVehicleDeparture(Vehicle v, int destPort, NodeEnum node, LogicalClock clock) {
+        Event event = new VehicleEvent(EventType.VEHICLE_DEPARTURE, v, node, clock.tick());
+        sendToEventHandler(event);
+        sendVehicle(event, destPort);
     }
 }

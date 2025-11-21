@@ -4,9 +4,9 @@ import java.util.*;
 
 import Comunication.*;
 import Road.*;
+import Utils.LogicalClock;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
-import Event.*;
 
 public class Crossroad {
     public static void main(String[] args) {
@@ -16,6 +16,14 @@ public class Crossroad {
         }
         String crossId = args[0];
         NodeEnum crossroad = NodeEnum.toNodeEnum(crossId);
+
+        if (crossroad == null || crossroad.getType() != NodeType.CROSSROAD) {
+            System.out.println("Invalid crossroad node: " + crossId);
+            return;
+        }
+
+        LogicalClock clock = new LogicalClock();
+
         List<RoadEnum> roadsToCrossroad = RoadEnum.getRoadsToCrossroad(crossroad);
 
         Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues = new HashMap<>();
@@ -24,12 +32,12 @@ public class Crossroad {
 
         for (RoadEnum road : roadsToCrossroad) {
             SynchronizedQueue<Vehicle> vehicleQueue = new SynchronizedQueue<>();
-            TrafficLight trafficLight = new TrafficLight(vehicleQueue, road);
+            TrafficLight trafficLight = new TrafficLight(vehicleQueue, road, clock);
             trafficQueues.put(road, vehicleQueue);
             trafficLight.start();
         }
 
-        new Receiver(vehiclesToSort, crossroad.toString(), crossroad.getPort()).start();
+        new Receiver(vehiclesToSort, crossroad.getPort(), crossroad, clock).start();
         new TrafficSorter(trafficQueues, vehiclesToSort, crossroad).start();
     }
 }
