@@ -12,7 +12,7 @@ public class Sender{
 
     public static void sendToEventHandler(Event event) {
         try {
-            Socket socket = new Socket("localhost", EventHandler.PORT);
+            Socket socket = new Socket("localhost", 8000);
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             out.writeObject(event);
             out.flush();
