@@ -3,6 +3,7 @@ package Launcher;
 import Event.*;
 import Node.NodeEnum;
 import Node.RoadEnum;
+import Node.NodeType;
 import Vehicle.Vehicle;
 import Vehicle.VehicleTypes;
 
@@ -72,7 +73,6 @@ public class Dashboard extends JFrame {
         startBtn.addActionListener(e -> startSimulation());
         stopBtn.addActionListener(e -> stopSimulation());
 
-        // Timer da animação
         Timer timer = new Timer(200, e -> {
             boolean changed = false;
             synchronized (sprites) {
@@ -92,10 +92,31 @@ public class Dashboard extends JFrame {
     }
 
     private void initNodes() {
-        nodePositions.put(NodeEnum.E3, new Point(80, 220));
-        nodePositions.put(NodeEnum.CR3, new Point(450, 220));
-        nodePositions.put(NodeEnum.S, new Point(820, 220));
-        trafficLights.put(NodeEnum.CR3, "GREEN");
+        // Layout nodes by type so Dashboard follows project Node definitions
+        int leftX = 100, centerX = 450, rightX = 800;
+        int baseY = 180;
+        int entIndex = 0, crossIndex = 0, exitIndex = 0;
+
+        for (NodeEnum node : NodeEnum.values()) {
+            NodeType t = node.getType();
+            switch (t) {
+                case ENTRANCE -> {
+                    nodePositions.put(node, new Point(leftX, baseY + entIndex * 80));
+                    entIndex++;
+                }
+                case CROSSROAD -> {
+                    nodePositions.put(node, new Point(centerX, baseY + crossIndex * 80));
+                    crossIndex++;
+                }
+                case EXIT -> {
+                    nodePositions.put(node, new Point(rightX, baseY + exitIndex * 80));
+                    exitIndex++;
+                }
+            }
+        }
+
+        // default traffic lights for crossroads
+        for (NodeEnum node : NodeEnum.values()) if (node.getType() == NodeType.CROSSROAD) trafficLights.put(node, "GREEN");
     }
 
     private void startSimulation() {

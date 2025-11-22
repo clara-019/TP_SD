@@ -8,8 +8,14 @@ import java.util.List;
  * Cada nó tem um nome e uma porta de comunicação associada
  */
 public enum NodeEnum {
+    E1(NodeType.ENTRANCE, 5001),
+    E2(NodeType.ENTRANCE, 5002),
     E3(NodeType.ENTRANCE, 5003),
+    CR1(NodeType.CROSSROAD, 6001),
+    CR2(NodeType.CROSSROAD, 6002),
     CR3(NodeType.CROSSROAD, 6003),
+    CR4(NodeType.CROSSROAD, 6004),
+    CR5(NodeType.CROSSROAD, 6005),
     S(NodeType.EXIT, 7001);
 
     private final NodeType type;

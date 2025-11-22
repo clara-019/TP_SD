@@ -5,6 +5,5 @@ public enum EventType {
     NEW_VEHICLE,
     VEHICLE_ARRIVAL,
     VEHICLE_DEPARTURE,
-    VEHICLE_EXIT,
-    VEHICLE_STOPPED
+    VEHICLE_EXIT
 }

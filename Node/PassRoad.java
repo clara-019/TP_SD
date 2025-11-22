@@ -2,29 +2,24 @@ package Node;
 
 import java.util.AbstractMap.SimpleEntry;
 
-import Comunication.Sender;
-import Event.*;
 import Utils.*;
 import Vehicle.*;
 
 public class PassRoad extends Thread {
 
-    private static final long DELAY_BETWEEN_PASSES_MS = 100;
+    private static final long DELAY_BETWEEN_PASSES_MS = 200;
 
     private final SynchronizedQueue<Vehicle> arrivingQueue;
     private final SynchronizedQueue<Vehicle> passedQueue;
     private final RoadEnum road;
-    private final LogicalClock clock;
 
     public PassRoad(SynchronizedQueue<Vehicle> arrivingQueue,
                     SynchronizedQueue<Vehicle> passedQueue,
-                    RoadEnum road,
-                    LogicalClock clock) {
+                    RoadEnum road) {
 
         this.arrivingQueue = arrivingQueue;
         this.passedQueue = passedQueue;
         this.road = road;
-        this.clock = clock;
     }
 
     @Override

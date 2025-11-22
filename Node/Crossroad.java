@@ -4,6 +4,7 @@ import java.util.*;
 
 import Comunication.*;
 import Utils.LogicalClock;
+import Utils.RoundRobin;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
 
@@ -22,25 +23,25 @@ public class Crossroad {
         }
 
         LogicalClock clock = new LogicalClock();
+        RoundRobin roundRobin = new RoundRobin(crossroad);
 
-        // Estradas que chegam a este cruzamento
         List<RoadEnum> roadsToCrossroad = RoadEnum.getRoadsToCrossroad(crossroad);
 
-        // Fila de veículos por estrada (usada pelo TrafficSorter e pelos semáforos)
         Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues = new HashMap<>();
+        Map<RoadEnum, SynchronizedQueue<Vehicle>> passedQueues = new HashMap<>();
 
-        // Fila de veículos que chegam do Receiver e ainda têm de ser encaminhados
         SynchronizedQueue<Vehicle> vehiclesToSort = new SynchronizedQueue<>();
 
         for (RoadEnum road : roadsToCrossroad) {
-            // Fila de veículos que chegam a ESTE cruzamento vindo desta estrada
             SynchronizedQueue<Vehicle> vehicleQueue = new SynchronizedQueue<>();
+            SynchronizedQueue<Vehicle> passedQueue = new SynchronizedQueue<>();
 
-            // Registar no mapa para o TrafficSorter usar
             trafficQueues.put(road, vehicleQueue);
+            passedQueues.put(road, passedQueue);
 
-            // Semáforo vai gerir ESTA fila
-            TrafficLight trafficLight = new TrafficLight(vehicleQueue, road, clock);
+            PassRoad passRoad = new PassRoad(vehicleQueue, passedQueue, road);
+            TrafficLight trafficLight = new TrafficLight(passedQueue, road, clock, roundRobin);
+            passRoad.start();
             trafficLight.start();
         }
 
