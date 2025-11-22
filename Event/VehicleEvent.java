@@ -15,7 +15,7 @@ public class VehicleEvent extends Event {
     }
     @Override
     public String toString() {
-        return String.format("VehicleEvent[%s, vehicle=%s]", super.toString(), vehicle);
+        return String.format("VehicleEvent[%s, vehicle=%s]", super.toString(), vehicle.getId());
     }
 
 }

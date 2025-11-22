@@ -45,7 +45,7 @@ public class TrafficLight extends Thread {
 
                 System.out.println("Traffic Light GREEN for: " + road);
                 Sender.sendToEventHandler(
-                        new SignalChangeEvent(currentNode, greenStartTime, "Green")
+                        new SignalChangeEvent(currentNode, clock.get(), "Green")
                 );
 
                 // Enquanto o semáforo está verde, deixamos passar veículos
@@ -100,10 +100,9 @@ public class TrafficLight extends Thread {
                 // =========================
                 //          VERMELHO
                 // =========================
-                long redStartTime = System.currentTimeMillis();
                 System.out.println("Traffic Light RED for: " + road);
                 Sender.sendToEventHandler(
-                        new SignalChangeEvent(currentNode, redStartTime, "Red")
+                        new SignalChangeEvent(currentNode, clock.get(), "Red")
                 );
 
                 // Durante o vermelho NÃO tocamos na fila de veículos

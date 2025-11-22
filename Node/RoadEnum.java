@@ -8,7 +8,7 @@ import java.util.*;
  */
 public enum RoadEnum {
     E3_CR3(NodeEnum.E3, NodeEnum.CR3, 1000),
-    CR3_S(NodeEnum.CR3, NodeEnum.S, 1000);
+    CR3_S(NodeEnum.CR3, NodeEnum.S, 10000);
 
     private final NodeEnum origin;
     private final NodeEnum destination;

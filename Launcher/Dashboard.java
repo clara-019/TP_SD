@@ -73,7 +73,7 @@ public class Dashboard extends JFrame {
         stopBtn.addActionListener(e -> stopSimulation());
 
         // Timer da animação
-        Timer timer = new Timer(40, e -> {
+        Timer timer = new Timer(200, e -> {
             boolean changed = false;
             synchronized (sprites) {
                 Iterator<Map.Entry<String, VehicleSprite>> it = sprites.entrySet().iterator();

@@ -1,5 +1,9 @@
 package Node;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import Comunication.*;
 import Event.*;
 import Utils.*;
@@ -20,13 +24,26 @@ public class Exit {
         }
 
         LogicalClock clock = new LogicalClock();
-
+        List<RoadEnum> roadsToExit = RoadEnum.getRoadsToCrossroad(exit);
+        Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues = new HashMap<>();
         SynchronizedQueue<Vehicle> incommingQueue = new SynchronizedQueue<>();
+        SynchronizedQueue<Vehicle> passedQueue = new SynchronizedQueue<>();
+
+        for (RoadEnum road : roadsToExit) {
+            SynchronizedQueue<Vehicle> trafficQueue = new SynchronizedQueue<>();
+
+            PassRoad passRoad = new PassRoad(trafficQueue, passedQueue, road);
+
+            trafficQueues.put(road, trafficQueue);
+
+            passRoad.start();
+        }
 
         new Receiver(incommingQueue, exit.getPort(), exit, clock).start();
+        new TrafficSorter(trafficQueues, incommingQueue, exit).start();
 
         while (true) {
-            Vehicle vehicle = incommingQueue.remove();
+            Vehicle vehicle = passedQueue.remove();
             if (vehicle == null)
                 continue;
             Sender.sendToEventHandler(new VehicleEvent(EventType.VEHICLE_EXIT, vehicle, exit, clock.tick()));
