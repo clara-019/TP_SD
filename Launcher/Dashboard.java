@@ -131,6 +131,25 @@ public class Dashboard extends JFrame {
 		}
 		statusLabel.setText("Simulation: STOPPED");
 		statusLabel.setForeground(Color.RED);
+
+		// clear pending events and visual vehicles on dashboard
+		if (eventQueue != null) {
+			int removed = 0;
+			while (!eventQueue.isEmpty()) {
+				Event e = eventQueue.poll();
+				if (e == null) break;
+				removed++;
+			}
+			if (removed > 0) appendLog("Cleared " + removed + " pending events from queue.");
+		}
+
+		synchronized (sprites) {
+			int c = sprites.size();
+			sprites.clear();
+			if (c > 0) appendLog("Cleared " + c + " vehicles from dashboard.");
+		}
+
+		SwingUtilities.invokeLater(() -> drawPanel.repaint());
 	}
 
 	private void handleEvent(Event ev) {
