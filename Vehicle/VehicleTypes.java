@@ -1,45 +1,42 @@
 package Vehicle;
 
 public enum VehicleTypes {
-    CAR,
-    TRUCK,
-    MOTORCYCLE;
+    CAR(1.0),
+    TRUCK(2.0),        // camião = 2x o carro
+    MOTORCYCLE(0.5);   // moto = metade
 
-    private static final double CAR_MULTIPLIER = 1.0;
-    private static final double TRUCK_MULTIPLIER = 4.0;
-    private static final double MOTORCYCLE_MULTIPLIER = 0.5;
+    private final double multiplier;
+
+    VehicleTypes(double multiplier) {
+        this.multiplier = multiplier;
+    }
+
+    public double getMultiplier() {
+        return multiplier;
+    }
+
+    /**
+     * @param baseTimeMs tempo base da rua vindo do RoadEnum (em ms)
+     * @return tempo final (em ms) ajustado ao tipo do veículo
+     */
+    public long getTimeToPass(long baseTimeMs) {
+        return (long) (baseTimeMs * multiplier);
+    }
 
     public String getTypeToString() {
-        switch (this) {
-            case CAR:
-                return "Car";
-            case TRUCK:
-                return "Truck";
-            case MOTORCYCLE:
-                return "Motorcycle";
-            default:
-                return "Unknown Vehicle Type";
-        }
+        return switch (this) {
+            case CAR -> "Car";
+            case TRUCK -> "Truck";
+            case MOTORCYCLE -> "Motorcycle";
+        };
     }
 
     public static VehicleTypes getVehicleTypeFromString(String typeStr) {
-        for (VehicleTypes type : VehicleTypes.values()) {
+        for (VehicleTypes type : values()) {
             if (type.getTypeToString().equalsIgnoreCase(typeStr)) {
                 return type;
             }
         }
-        return null; 
-    }
-    public long getTimeToPass(int temp) {
-        switch (this) {
-            case CAR:
-                return (long) (CAR_MULTIPLIER * temp);
-            case TRUCK:
-                return (long) (TRUCK_MULTIPLIER * MOTORCYCLE_MULTIPLIER * CAR_MULTIPLIER * temp);
-            case MOTORCYCLE:
-                return (long) (MOTORCYCLE_MULTIPLIER * CAR_MULTIPLIER * temp);
-            default:
-                return -1;
-        }
+        return null;
     }
 }

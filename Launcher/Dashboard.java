@@ -194,7 +194,7 @@ public class Dashboard extends JFrame {
                         road = RoadEnum.CR3_S;
                         to = NodeEnum.S;
                     }
-
+                    
                     if (road != null && to != null) {
                         Point dest = nodePositions.get(to);
                         long travelMs = v.getType().getTimeToPass(road.getTime());
