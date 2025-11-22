@@ -40,7 +40,7 @@ public class TrafficLight extends Thread {
 
                 System.out.println("Traffic Light GREEN for: " + road);
                 Sender.sendToEventHandler(
-                        new SignalChangeEvent(currentNode, clock.get(), "Green"));
+                        new SignalChangeEvent(currentNode, clock.get(), "green"));
 
                 while (true) {
                     long now = System.currentTimeMillis();
@@ -76,7 +76,7 @@ public class TrafficLight extends Thread {
                 }
                 System.out.println("Traffic Light RED for: " + road);
                 Sender.sendToEventHandler(
-                        new SignalChangeEvent(currentNode, clock.get(), "Red"));
+                        new SignalChangeEvent(currentNode, clock.get(), "red"));
 
                 roundRobin.terminarTurno();
 

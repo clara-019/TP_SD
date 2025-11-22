@@ -1,436 +1,364 @@
 package Launcher;
 
-import Event.*;
-import Node.NodeEnum;
-import Node.RoadEnum;
-import Node.NodeType;
-import Vehicle.Vehicle;
-import Vehicle.VehicleTypes;
-
 import javax.swing.*;
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.RenderingHints;
-import java.awt.Shape;
-import java.awt.BasicStroke;
-import java.awt.BorderLayout;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Path2D;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.PriorityBlockingQueue;
+import javax.swing.Timer;
 
-public class Dashboard extends JFrame {
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.*;
 
-    private static final double ANIMATION_TIME_SCALE = 3.0; // Aumenta para andar mais devagar
+import Event.Event;
+import Event.SignalChangeEvent;
+import Node.NodeEnum;
+import Node.NodeType;
+import Node.RoadEnum;
 
-    private Simulator simulator;
-    private PriorityBlockingQueue<Event> eventQueue;
+public class Dashboard {
 
-    private final Map<String, VehicleSprite> sprites = new HashMap<>();
-    private final Map<NodeEnum, Point> nodePositions = new HashMap<>();
-    private final Map<NodeEnum, String> trafficLights = new HashMap<>();
+    private final Simulator simulator;
+    private JFrame frame;
 
-    private JTextArea logArea;
-    private DrawPanel drawPanel;
-    private JLabel statusLabel;
-    private Thread eventConsumer;
+    
+    private JButton startBtn, stopBtn;
+    private JLabel queueLabel;
+
+    private DefaultListModel<String> eventsModel;
+    private NodeGridPanel gridPanel;
+
+    private Timer uiTimer;
+    private Thread consumerThread;
+
+    private final Map<NodeEnum, String> signalColors = new ConcurrentHashMap<>();
+    private final Map<NodeEnum, Long> signalClocks = new ConcurrentHashMap<>();
+    private final Deque<String> recentEvents = new ConcurrentLinkedDeque<>();
 
     public Dashboard() {
-        super("Traffic Simulator Dashboard");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(950, 500);
-        setLayout(new BorderLayout());
+        this.simulator = new Simulator();
+        initUI();
+        startEventConsumer();
+        startUiTimer();
+    }
 
-        initNodes();
+    private void startEventConsumer() {
+        consumerThread = new Thread(() -> {
+            BlockingQueue<Event> queue = simulator.getEventQueue();
 
-        drawPanel = new DrawPanel();
-        add(drawPanel, BorderLayout.CENTER);
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    Event ev = queue.take();
 
-        // Top panel
-        JPanel topPanel = new JPanel(new BorderLayout());
-        JPanel controls = new JPanel();
+                    if (ev instanceof SignalChangeEvent sce) {
+                        NodeEnum node = sce.getNode();
+                        long clk = sce.getLogicalClock();
 
-        JButton startBtn = new JButton("Start Simulation");
-        JButton stopBtn = new JButton("Stop Simulation");
-        controls.add(startBtn);
-        controls.add(stopBtn);
-        topPanel.add(controls, BorderLayout.WEST);
+                        signalClocks.compute(node, (n, prev) -> {
+                            if (prev == null || clk >= prev) {
+                                signalColors.put(node, sce.getSignalColor());
+                                return clk;
+                            }
+                            return prev;
+                        });
+                    }
 
-        statusLabel = new JLabel("Simulation: STOPPED");
-        statusLabel.setForeground(Color.RED);
-        topPanel.add(statusLabel, BorderLayout.EAST);
+                    recentEvents.addLast(ev.toString());
+                    while (recentEvents.size() > 200)
+                        recentEvents.removeFirst();
 
-        add(topPanel, BorderLayout.NORTH);
+                } catch (InterruptedException ex) {
+                    break;
+                }
+            }
+        }, "Dashboard-Consumer");
 
-        logArea = new JTextArea(6, 40);
-        logArea.setEditable(false);
-        add(new JScrollPane(logArea), BorderLayout.SOUTH);
+        consumerThread.setDaemon(true);
+        consumerThread.start();
+    }
+
+    private void initUI() {
+        frame = new JFrame("Traffic Simulator Dashboard");
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        frame.addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                shutdown();
+            }
+        });
+
+        frame.setSize(950, 620);
+        frame.setLocationRelativeTo(null);
+        frame.setLayout(new BorderLayout(5, 5));
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        startBtn = new JButton("Iniciar");
+        stopBtn = new JButton("Parar");
+        stopBtn.setEnabled(false);
 
         startBtn.addActionListener(e -> startSimulation());
         stopBtn.addActionListener(e -> stopSimulation());
 
-        Timer timer = new Timer(200, e -> {
-            boolean changed = false;
-            synchronized (sprites) {
-                Iterator<Map.Entry<String, VehicleSprite>> it = sprites.entrySet().iterator();
-                while (it.hasNext()) {
-                    VehicleSprite s = it.next().getValue();
-                    if (s.updatePosition()) changed = true;
-                    if (s.shouldRemoveNow()) {
-                        it.remove();
-                        changed = true;
-                    }
-                }
-            }
-            if (changed) drawPanel.repaint();
-        });
-        timer.start();
-    }
+        queueLabel = new JLabel("Events: 0");
 
-    private void initNodes() {
-        // Layout nodes by type so Dashboard follows project Node definitions
-        int leftX = 100, centerX = 450, rightX = 800;
-        int baseY = 180;
-        int entIndex = 0, crossIndex = 0, exitIndex = 0;
+        top.add(startBtn);
+        top.add(stopBtn);
+        top.add(Box.createHorizontalStrut(20));
+        top.add(queueLabel);
 
-        for (NodeEnum node : NodeEnum.values()) {
-            NodeType t = node.getType();
-            switch (t) {
-                case ENTRANCE -> {
-                    nodePositions.put(node, new Point(leftX, baseY + entIndex * 80));
-                    entIndex++;
-                }
-                case CROSSROAD -> {
-                    nodePositions.put(node, new Point(centerX, baseY + crossIndex * 80));
-                    crossIndex++;
-                }
-                case EXIT -> {
-                    nodePositions.put(node, new Point(rightX, baseY + exitIndex * 80));
-                    exitIndex++;
-                }
-            }
-        }
+        gridPanel = new NodeGridPanel();
+        JScrollPane gridScroll = new JScrollPane(gridPanel);
 
-        // default traffic lights for crossroads
-        for (NodeEnum node : NodeEnum.values()) if (node.getType() == NodeType.CROSSROAD) trafficLights.put(node, "GREEN");
+        eventsModel = new DefaultListModel<>();
+        JList<String> eventList = new JList<>(eventsModel);
+        eventList.setFont(new Font("Monospaced", Font.PLAIN, 11));
+
+        JScrollPane eventsScroll = new JScrollPane(eventList);
+        eventsScroll.setPreferredSize(new Dimension(280, 600));
+
+        JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, gridScroll, eventsScroll);
+        mainSplit.setResizeWeight(0.7);
+
+        frame.add(top, BorderLayout.NORTH);
+        frame.add(mainSplit, BorderLayout.CENTER);
+        frame.setVisible(true);
     }
 
     private void startSimulation() {
-        if (simulator != null && simulator.isRunning()) {
-            appendLog("Simulator already running");
-            return;
-        }
+        startBtn.setEnabled(false);
+        stopBtn.setEnabled(true);
 
-        appendLog("Starting simulator...");
-        simulator = new Simulator();
-        eventQueue = simulator.getEventQueue();
-
-        Thread simThread = new Thread(simulator::startSimulation);
-        simThread.setDaemon(true);
-        simThread.start();
-
-        statusLabel.setText("Simulation: RUNNING");
-        statusLabel.setForeground(Color.GREEN);
-
-        eventConsumer = new Thread(() -> {
+        new Thread(() -> {
             try {
-                while (simulator != null && simulator.isRunning()) {
-                    Event ev = eventQueue.take();
-                    handleEvent(ev);
-                }
-            } catch (InterruptedException ignored) {}
-        });
-        eventConsumer.setDaemon(true);
-        eventConsumer.start();
+                simulator.startSimulation();
+            } finally {
+                SwingUtilities.invokeLater(() -> {
+                    startBtn.setEnabled(true);
+                    stopBtn.setEnabled(false);
+                });
+            }
+        }, "Simulator").start();
     }
 
     private void stopSimulation() {
-        if (simulator != null) {
-            appendLog("Stopping simulator...");
+        stopBtn.setEnabled(false);
+        simulator.stopSimulation();
+
+        eventsModel.clear();
+        simulator.getEventQueue().clear();
+
+        startBtn.setEnabled(true);
+    }
+
+    private void shutdown() {
+        try {
             simulator.stopSimulation();
-            simulator = null;
-        }
-        if (eventConsumer != null) {
-            eventConsumer.interrupt();
-            eventConsumer = null;
-        }
+        } catch (Exception ignored) {}
 
-        statusLabel.setText("Simulation: STOPPED");
-        statusLabel.setForeground(Color.RED);
+        try {
+            consumerThread.interrupt();
+        } catch (Exception ignored) {}
 
-        if (eventQueue != null) {
-            while (!eventQueue.isEmpty()) {
-                eventQueue.poll();
-            }
-        }
-
-        synchronized (sprites) {
-            sprites.clear();
-        }
-        SwingUtilities.invokeLater(drawPanel::repaint);
+        System.exit(0);
     }
 
-    private void handleEvent(Event ev) {
-        appendLog(ev.toString());
+    private void startUiTimer() {
+        uiTimer = new Timer(400, e -> {
+            try {
+                queueLabel.setText("Events: " + simulator.getEventQueue().size());
 
-        if (ev instanceof SignalChangeEvent s) {
-            trafficLights.put(s.getNode(), s.getSignalColor());
-            SwingUtilities.invokeLater(drawPanel::repaint);
-            return;
-        }
+                eventsModel.clear();
+                List<String> evs = new ArrayList<>(recentEvents);
+                int n = evs.size();
+                for (int i = Math.max(0, n - 50); i < n; i++)
+                    eventsModel.addElement(evs.get(i));
 
-        if (!(ev instanceof VehicleEvent ve)) return;
-
-        Vehicle v = ve.getVehicle();
-        String vid = v.getId();
-
-        switch (ve.getType()) {
-
-            case NEW_VEHICLE -> {
-                // Cria sprite parado no nó de origem
-                Point p = nodePositions.get(ve.getNode()); // normalmente E3
-                VehicleSprite sprite = new VehicleSprite(vid, v, p.x, p.y);
-                synchronized (sprites) {
-                    sprites.put(vid, sprite);
-                }
-            }
-
-            case VEHICLE_DEPARTURE -> {
-                // Começa movimento entre nós, com duração igual (x fator) ao tempo da simulação
-                synchronized (sprites) {
-                    VehicleSprite sprite = sprites.get(vid);
-                    if (sprite == null) break;
-
-                    RoadEnum road = null;
-                    NodeEnum to = null;
-
-                    if (ve.getNode() == NodeEnum.E3) {
-                        road = RoadEnum.E3_CR3;
-                        to = NodeEnum.CR3;
-                    } else if (ve.getNode() == NodeEnum.CR3) {
-                        road = RoadEnum.CR3_S;
-                        to = NodeEnum.S;
-                    }
-                    
-                    if (road != null && to != null) {
-                        Point dest = nodePositions.get(to);
-                        long travelMs = v.getType().getTimeToPass(road.getTime());
-                        long durationAnim = (long) (travelMs * ANIMATION_TIME_SCALE);
-                        sprite.setTarget(dest.x - 40, dest.y, durationAnim);
-                    }
-                }
-            }
-
-            case VEHICLE_ARRIVAL -> {
-                // Opcional: snap ao nó (se houver esse evento na tua simulação)
-                synchronized (sprites) {
-                    VehicleSprite s = sprites.get(vid);
-                    if (s != null) {
-                        Point p = nodePositions.get(ve.getNode());
-                        s.x = p.x;
-                        s.y = p.y;
-                    }
-                }
-            }
-
-            case VEHICLE_EXIT -> {
-                // Marca para ser removido quando a animação atual terminar
-                synchronized (sprites) {
-                    VehicleSprite s = sprites.get(vid);
-                    if (s != null) s.markForRemoval();
-                }
-            }
-
-            default -> {}
-        }
-
-        SwingUtilities.invokeLater(drawPanel::repaint);
-    }
-
-    private void appendLog(String s) {
-        SwingUtilities.invokeLater(() -> {
-            logArea.append(s + "\n");
-            logArea.setCaretPosition(logArea.getDocument().getLength());
+                gridPanel.repaint();
+            } catch (Exception ignored) {}
         });
+
+        uiTimer.start();
     }
 
-    // =======================
-    //      PAINEL DESENHO
-    // =======================
-    private class DrawPanel extends JPanel {
-        DrawPanel() {
+    private class NodeGridPanel extends JPanel {
+
+        private final int rows = 3, cols = 3;
+
+        public NodeGridPanel() {
             setBackground(Color.WHITE);
+            setPreferredSize(new Dimension(600, 600));
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g;
+            Graphics2D g2 = (Graphics2D) g.create();
+
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            // Estradas
-            drawRoad(g2, NodeEnum.E3, NodeEnum.CR3);
-            drawRoad(g2, NodeEnum.CR3, NodeEnum.S);
+            int cellW = getWidth() / cols;
+            int cellH = getHeight() / rows;
 
-            // Nós
-            for (Map.Entry<NodeEnum, Point> e : nodePositions.entrySet()) {
-                Point p = e.getValue();
-                g2.setColor(Color.LIGHT_GRAY);
-                g2.fillRect(p.x - 40, p.y - 30, 80, 60);
-                g2.setColor(Color.BLACK);
-                g2.drawRect(p.x - 40, p.y - 30, 80, 60);
-                g2.drawString(e.getKey().toString(), p.x - 10, p.y - 40);
+            Map<NodeEnum, Point> centers = new EnumMap<>(NodeEnum.class);
+            NodeEnum[] nodes = NodeEnum.values();
+
+            for (int i = 0; i < nodes.length; i++) {
+                NodeEnum node = nodes[i];
+
+                int r = i / cols;
+                int c = i % cols;
+
+                int x = c * cellW + 10;
+                int y = r * cellH + 10;
+                int w = cellW - 20;
+                int h = cellH - 20;
+
+                drawNodeBox(g2, node, x, y, w, h);
+                centers.put(node, new Point(x + w / 2, y + h / 2));
             }
 
-            // Semáforo CR3
-            drawTrafficLightCR3(g2);
+            drawRoads(g2, centers);
 
-            // Legenda
-            g2.setColor(Color.BLACK);
-            g2.drawString("Legend: Car=Blue, Truck=Gray, Motorcycle=Orange", 10, 15);
-
-            // Veículos
-            synchronized (sprites) {
-                for (VehicleSprite vs : sprites.values()) {
-                    vs.draw(g2);
-                }
-            }
+            g2.dispose();
         }
 
-        private void drawRoad(Graphics2D g2, NodeEnum from, NodeEnum to) {
-            Point p1 = nodePositions.get(from);
-            Point p2 = nodePositions.get(to);
-            g2.setColor(Color.DARK_GRAY);
-            g2.setStroke(new BasicStroke(6));
-            g2.drawLine(p1.x + 40, p1.y, p2.x - 40, p2.y);
-
-            // seta
-            double dx = p2.x - p1.x;
-            double dy = p2.y - p1.y;
-            double angle = Math.atan2(dy, dx);
-            int arrowSize = 12;
-            Path2D arrow = new Path2D.Double();
-            arrow.moveTo(0, 0);
-            arrow.lineTo(-arrowSize, -arrowSize / 2.0);
-            arrow.lineTo(-arrowSize, arrowSize / 2.0);
-            arrow.closePath();
-            AffineTransform at = new AffineTransform();
-            at.translate(p2.x - 50, p2.y);
-            at.rotate(angle);
-            Shape arrowShape = at.createTransformedShape(arrow);
-            g2.fill(arrowShape);
-        }
-
-        private void drawTrafficLightCR3(Graphics2D g2) {
-            Point cr3 = nodePositions.get(NodeEnum.CR3);
-            String color = trafficLights.getOrDefault(NodeEnum.CR3, "GREEN");
-            Color light = switch (color.toUpperCase()) {
-                case "RED" -> new Color(255, 50, 50);
-                case "YELLOW" -> new Color(255, 200, 0);
-                default -> new Color(50, 255, 50);
+        private void drawNodeBox(Graphics2D g2, NodeEnum node, int x, int y, int w, int h) {
+            Color bg = switch (node.getType()) {
+                case ENTRANCE -> new Color(200, 245, 200);
+                case EXIT -> new Color(250, 210, 210);
+                case CROSSROAD -> new Color(255, 245, 210);
+                default -> new Color(240, 240, 240);
             };
+
+            g2.setColor(bg);
+            g2.fillRoundRect(x, y, w, h, 15, 15);
+
+            g2.setColor(Color.DARK_GRAY);
+            g2.drawRoundRect(x, y, w, h, 15, 15);
+
             g2.setColor(Color.BLACK);
-            g2.fillRect(cr3.x - 60, cr3.y - 60, 30, 50);
-            g2.setColor(light);
-            g2.fillOval(cr3.x - 56, cr3.y - 54, 22, 22);
-        }
-    }
+            g2.setFont(getFont().deriveFont(Font.BOLD, 14));
+            g2.drawString(node.name(), x + 10, y + 20);
 
-    // =======================
-    //     SPRITE DO CARRO
-    // =======================
-    private static class VehicleSprite {
-        final String id;
-        final Vehicle vehicle;
-
-        double x, y;
-        double startX, startY;
-        double tx, ty;
-        long startTime;
-        long durationMs;
-        boolean moving = false;
-        boolean removeWhenArrives = false;
-
-        VehicleSprite(String id, Vehicle v, double x, double y) {
-            this.id = id;
-            this.vehicle = v;
-            this.x = x;
-            this.y = y;
-            this.startX = x;
-            this.startY = y;
-            this.tx = x;
-            this.ty = y;
+            g2.setFont(getFont().deriveFont(Font.PLAIN, 12));
+            g2.drawString("Port: " + node.getPort(), x + 10, y + 38);
         }
 
-        void setTarget(double tx, double ty, long durationMs) {
-            this.startX = this.x;
-            this.startY = this.y;
-            this.tx = tx;
-            this.ty = ty;
-            this.startTime = System.currentTimeMillis();
-            this.durationMs = Math.max(1, durationMs);
-            this.moving = true;
-        }
+        private void drawRoads(Graphics2D g2, Map<NodeEnum, Point> centers) {
+            g2.setStroke(new BasicStroke(2));
+            g2.setColor(new Color(80, 80, 80));
 
-        void markForRemoval() {
-            this.removeWhenArrives = true;
-        }
-
-        boolean shouldRemoveNow() {
-            return removeWhenArrives && !moving;
-        }
-
-        boolean updatePosition() {
-            if (!moving) return false;
-
-            long now = System.currentTimeMillis();
-            double t = (now - startTime) / (double) durationMs;
-
-            if (t >= 1.0) {
-                x = tx;
-                y = ty;
-                moving = false;
-                return true;
-            }
-
-            x = startX + (tx - startX) * t;
-            y = startY + (ty - startY) * t;
-            return true;
-        }
-
-        void draw(Graphics2D g2) {
-            VehicleTypes vt = vehicle.getType();
-            if (vt == null) vt = VehicleTypes.CAR;
-
-            switch (vt) {
-                case CAR -> {
-                    g2.setColor(new Color(30, 144, 255));
-                    g2.fillOval((int) x - 10, (int) y - 6, 20, 12);
-                }
-                case TRUCK -> {
-                    g2.setColor(Color.DARK_GRAY);
-                    g2.fillRect((int) x - 12, (int) y - 7, 24, 14);
-                }
-                case MOTORCYCLE -> {
-                    g2.setColor(new Color(255, 140, 0));
-                    int[] xs = {(int) x, (int) x - 8, (int) x + 8};
-                    int[] ys = {(int) y - 6, (int) y + 6, (int) y + 6};
-                    g2.fillPolygon(xs, ys, 3);
+            Map<String, List<RoadEnum>> forwardMap = new HashMap<>();
+            Map<String, List<RoadEnum>> backwardMap = new HashMap<>();
+            for (RoadEnum r : RoadEnum.values()) {
+                String a = r.getOrigin().name();
+                String b = r.getDestination().name();
+                String key = a.compareTo(b) <= 0 ? a + "|" + b : b + "|" + a;
+                String first = a.compareTo(b) <= 0 ? a : b;
+                if (r.getOrigin().name().equals(first)) {
+                    forwardMap.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
+                } else {
+                    backwardMap.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
                 }
             }
-            g2.setColor(Color.WHITE);
-            g2.drawString(id, (int) x - 6, (int) y + 22);
+
+            Set<String> keys = new HashSet<>();
+            keys.addAll(forwardMap.keySet());
+            keys.addAll(backwardMap.keySet());
+
+            double sideSpacing = 14.0;
+            double intraSpacing = 12.0;
+
+            for (String key : keys) {
+                List<RoadEnum> fwd = forwardMap.getOrDefault(key, Collections.emptyList());
+                List<RoadEnum> bwd = backwardMap.getOrDefault(key, Collections.emptyList());
+
+                String[] parts = key.split("\\|");
+                if (parts.length != 2) continue;
+                NodeEnum n1 = NodeEnum.valueOf(parts[0]);
+                NodeEnum n2 = NodeEnum.valueOf(parts[1]);
+
+                Point p1 = centers.get(n1);
+                Point p2 = centers.get(n2);
+                if (p1 == null || p2 == null) continue;
+
+                double dx = p2.x - p1.x;
+                double dy = p2.y - p1.y;
+                double len = Math.hypot(dx, dy);
+                if (len == 0) len = 1;
+                double ux = dx / len;
+                double uy = dy / len;
+                double px = -uy;
+                double py = ux;
+
+                // forward (n1 -> n2) on positive side
+                for (int i = 0; i < fwd.size(); i++) {
+                    RoadEnum road = fwd.get(i);
+                    double offset = sideSpacing + (i - (fwd.size() - 1) / 2.0) * intraSpacing;
+                    int sx1 = (int) Math.round(p1.x + px * offset);
+                    int sy1 = (int) Math.round(p1.y + py * offset);
+                    int sx2 = (int) Math.round(p2.x + px * offset);
+                    int sy2 = (int) Math.round(p2.y + py * offset);
+                    g2.drawLine(sx1, sy1, sx2, sy2);
+                    double ang = Math.atan2(sy2 - sy1, sx2 - sx1);
+                    drawArrow(g2, sx2, sy2, ang);
+                    if (road.getDestination().getType() == NodeType.CROSSROAD) {
+                        drawTrafficLight(g2, sx2, sy2, road.getDestination());
+                    }
+                }
+
+                // backward (n2 -> n1) on negative side
+                for (int i = 0; i < bwd.size(); i++) {
+                    RoadEnum road = bwd.get(i);
+                    double offset = -sideSpacing + (i - (bwd.size() - 1) / 2.0) * intraSpacing;
+                    int sx1 = (int) Math.round(p2.x + px * offset);
+                    int sy1 = (int) Math.round(p2.y + py * offset);
+                    int sx2 = (int) Math.round(p1.x + px * offset);
+                    int sy2 = (int) Math.round(p1.y + py * offset);
+                    g2.drawLine(sx1, sy1, sx2, sy2);
+                    double ang = Math.atan2(sy2 - sy1, sx2 - sx1);
+                    drawArrow(g2, sx2, sy2, ang);
+                    if (road.getDestination().getType() == NodeType.CROSSROAD) {
+                        drawTrafficLight(g2, sx2, sy2, road.getDestination());
+                    }
+                }
+            }
+        }
+
+        private void drawArrow(Graphics2D g2, int x, int y, double angle) {
+            int size = 10;
+            Polygon p = new Polygon();
+            p.addPoint(x, y);
+            p.addPoint(x - (int)(size * Math.cos(angle - 0.5)),
+                       y - (int)(size * Math.sin(angle - 0.5)));
+            p.addPoint(x - (int)(size * Math.cos(angle + 0.5)),
+                       y - (int)(size * Math.sin(angle + 0.5)));
+
+            g2.fillPolygon(p);
+        }
+
+        private void drawTrafficLight(Graphics2D g2, int x, int y, NodeEnum node) {
+            int w = 14, h = 28;
+            int bx = x - w / 2, by = y - h - 8;
+
+            g2.setColor(new Color(30, 30, 30));
+            g2.fillRoundRect(bx, by, w, h, 4, 4);
+            g2.setColor(Color.BLACK);
+            g2.drawRoundRect(bx, by, w, h, 4, 4);
+
+            String state = signalColors.getOrDefault(node, "red").toLowerCase();
+
+            drawLight(g2, bx + w/2, by + 6, state.equals("red") ? Color.RED : new Color(90, 40, 40));
+            drawLight(g2, bx + w/2, by + 14, state.equals("yellow") ? Color.YELLOW : new Color(120, 100, 40));
+            drawLight(g2, bx + w/2, by + 22, state.equals("green") ? Color.GREEN : new Color(40, 120, 40));
+        }
+
+        private void drawLight(Graphics2D g2, int cx, int cy, Color color) {
+            g2.setColor(color);
+            g2.fillOval(cx - 4, cy - 4, 8, 8);
         }
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            Dashboard d = new Dashboard();
-            d.setVisible(true);
-        });
+        SwingUtilities.invokeLater(Dashboard::new);
     }
 }

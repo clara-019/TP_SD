@@ -16,6 +16,7 @@ public enum RoadEnum {
     CR2_CR3(NodeEnum.CR2, NodeEnum.CR3, 1500),
     CR2_CR5(NodeEnum.CR2, NodeEnum.CR5, 1500),
     CR3_CR2(NodeEnum.CR3, NodeEnum.CR2, 1500),
+    CR4_CR5(NodeEnum.CR4, NodeEnum.CR5, 1500),
     CR3_S(NodeEnum.CR3, NodeEnum.S, 2000),
     CR5_S(NodeEnum.CR5, NodeEnum.S, 2000);
 
