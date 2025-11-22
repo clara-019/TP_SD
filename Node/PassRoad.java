@@ -2,45 +2,70 @@ package Node;
 
 import java.util.AbstractMap.SimpleEntry;
 
+import Comunication.Sender;
+import Event.*;
 import Utils.*;
 import Vehicle.*;
 
 public class PassRoad extends Thread {
-    private static final long DELAY_BETWEEN_PASSES_MS = 100;
-    private SynchronizedQueue<Vehicle> arrivingQueue;
-    private SynchronizedQueue<Vehicle> passedQueue;
-    private RoadEnum road;
 
-    public PassRoad(SynchronizedQueue<Vehicle> arrivingQueue, SynchronizedQueue<Vehicle> passedQueue, RoadEnum road) {
+    private static final long DELAY_BETWEEN_PASSES_MS = 100;
+
+    private final SynchronizedQueue<Vehicle> arrivingQueue;
+    private final SynchronizedQueue<Vehicle> passedQueue;
+    private final RoadEnum road;
+    private final LogicalClock clock;
+
+    public PassRoad(SynchronizedQueue<Vehicle> arrivingQueue,
+                    SynchronizedQueue<Vehicle> passedQueue,
+                    RoadEnum road,
+                    LogicalClock clock) {
+
         this.arrivingQueue = arrivingQueue;
         this.passedQueue = passedQueue;
         this.road = road;
+        this.clock = clock;
     }
 
     @Override
     public void run() {
+
         SynchronizedQueue<SimpleEntry<Long, Vehicle>> vehicleQueue = new SynchronizedQueue<>();
+
         while (true) {
             try {
+
+                // Espera veículo que ACABOU de passar o semáforo
                 Vehicle vehicle = arrivingQueue.remove();
+
                 if (vehicle != null) {
-                    SimpleEntry<Long, Vehicle> entry = vehicleQueue.peekLast();
-                    long timeToTravel = System.currentTimeMillis() + vehicle.getType().getTimeToPass(road.getTime());
-                    if (entry != null && timeToTravel < entry.getKey()) {
-                        long lastVehicleTime = entry.getKey();
-                        vehicleQueue.add(new SimpleEntry<>(lastVehicleTime + DELAY_BETWEEN_PASSES_MS, vehicle));
+
+                    // Lógica original de espaçamento
+                    SimpleEntry<Long, Vehicle> last = vehicleQueue.peekLast();
+                    long travelTime = System.currentTimeMillis()
+                            + vehicle.getType().getTimeToPass(road.getTime());
+
+                    if (last != null && travelTime < last.getKey()) {
+                        long corrected = last.getKey() + DELAY_BETWEEN_PASSES_MS;
+                        vehicleQueue.add(new SimpleEntry<>(corrected, vehicle));
                     } else {
-                        vehicleQueue.add(new SimpleEntry<>(timeToTravel, vehicle));
+                        vehicleQueue.add(new SimpleEntry<>(travelTime, vehicle));
                     }
                 }
+
+                // Verifica se um veículo está pronto para avançar
                 SimpleEntry<Long, Vehicle> entry = vehicleQueue.peek();
+
                 if (entry != null && System.currentTimeMillis() >= entry.getKey()) {
+
                     vehicleQueue.remove();
-                    Vehicle passedVehicle = entry.getValue();
-                    System.out.println(
-                            "Vehicle " + passedVehicle.getId() + " has passed through Road: " + road.toString());
-                    passedQueue.add(passedVehicle);
+
+                    Vehicle v = entry.getValue();
+
+                    // SOMENTE regista no passedQueue
+                    passedQueue.add(v);
                 }
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
