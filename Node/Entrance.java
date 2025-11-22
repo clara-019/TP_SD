@@ -2,7 +2,6 @@ package Node;
 
 import Comunication.*;
 import Event.*;
-import Road.RoadEnum;
 import Utils.*;
 import Vehicle.*;
 

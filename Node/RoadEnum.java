@@ -1,8 +1,6 @@
-package Road;
+package Node;
 
 import java.util.*;
-
-import Node.*;
 
 /**
  * Enumeração que representa todas as estradas disponíveis no sistema
@@ -44,7 +42,7 @@ public enum RoadEnum {
         return destination;
     }
 
-    public int getTimeToTravel() {
+    public int getTime() {
         return timeToTravel;
     }
 

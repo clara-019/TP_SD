@@ -7,7 +7,6 @@ public class SynchronizedQueue<E> {
 
     public synchronized void add(E element) {
         queue.add(element);
-        notifyAll();
     }
 
     public synchronized boolean isEmpty() {
@@ -15,19 +14,15 @@ public class SynchronizedQueue<E> {
     }
 
     public synchronized E remove() {
-        while (queue.isEmpty()) {
-            try {
-                wait();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return null;
-            }
-        }
         return queue.poll();
     }
 
     public synchronized E peek(){
         return queue.peek();
+    }
+
+    public synchronized E peekLast(){
+        return ((LinkedList<E>)queue).peekLast();
     }
 
     public synchronized int size() { return queue.size(); }

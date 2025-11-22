@@ -3,7 +3,6 @@ package Node;
 import java.util.*;
 
 import Comunication.*;
-import Road.*;
 import Utils.LogicalClock;
 import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
@@ -27,13 +26,21 @@ public class Crossroad {
         List<RoadEnum> roadsToCrossroad = RoadEnum.getRoadsToCrossroad(crossroad);
 
         Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues = new HashMap<>();
+        Map<RoadEnum, SynchronizedQueue<Vehicle>> passedQueues = new HashMap<>();
 
         SynchronizedQueue<Vehicle> vehiclesToSort = new SynchronizedQueue<>();
 
         for (RoadEnum road : roadsToCrossroad) {
             SynchronizedQueue<Vehicle> vehicleQueue = new SynchronizedQueue<>();
-            TrafficLight trafficLight = new TrafficLight(vehicleQueue, road, clock);
+            SynchronizedQueue<Vehicle> passedQueue = new SynchronizedQueue<>();
+            
+            PassRoad passRoad = new PassRoad(vehicleQueue, passedQueue, road);
+            TrafficLight trafficLight = new TrafficLight(passedQueue, road, clock);
+
             trafficQueues.put(road, vehicleQueue);
+            passedQueues.put(road, passedQueue);
+
+            passRoad.start();
             trafficLight.start();
         }
 

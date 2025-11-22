@@ -4,7 +4,6 @@ import java.util.List;
 
 import Comunication.Sender;
 import Event.SignalChangeEvent;
-import Road.RoadEnum;
 import Utils.*;
 import Vehicle.Vehicle;
 

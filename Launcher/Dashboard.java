@@ -3,6 +3,7 @@ package Launcher;
 import Event.*;
 import Node.NodeEnum;
 import Vehicle.Vehicle;
+import Vehicle.VehicleTypes;
 
 import javax.swing.*;
 import java.awt.Color;
@@ -55,7 +56,6 @@ public class Dashboard extends JFrame {
 		startBtn.addActionListener(e -> startSimulation());
 		stopBtn.addActionListener(e -> stopSimulation());
 
-		// animation timer
 		Timer t = new Timer(40, e -> {
 			boolean changed = false;
 			synchronized (sprites) {
@@ -239,6 +239,14 @@ public class Dashboard extends JFrame {
 
 		VehicleSprite(String id, Vehicle v, double x, double y) {
 			this.id = id; this.vehicle = v; this.x = x; this.y = y; this.tx = x; this.ty = y;
+			VehicleTypes vt = v.getType();
+			if (vt == null) vt = VehicleTypes.CAR;
+			switch (vt) {
+				case CAR -> this.speed = 2.5;
+				case TRUCK -> this.speed = 1.2;
+				case MOTORCYCLE -> this.speed = 3.2;
+				default -> this.speed = 2.5;
+			}
 		}
 
 		void setTarget(double tx, double ty) { this.tx = tx; this.ty = ty; }
@@ -252,12 +260,26 @@ public class Dashboard extends JFrame {
 		}
 
 		void draw(Graphics2D g2) {
-			Color c = Color.BLUE;
-			if (vehicle.getType() != null) c = Color.MAGENTA;
-			g2.setColor(c);
-			g2.fillOval((int)x - 8, (int)y - 8, 16, 16);
+			VehicleTypes vt = vehicle.getType();
+			if (vt == null) vt = VehicleTypes.CAR;
+			switch (vt) {
+				case CAR -> {
+					g2.setColor(new Color(30, 144, 255)); // DodgerBlue
+					g2.fillOval((int)x - 10, (int)y - 6, 20, 12);
+				}
+				case TRUCK -> {
+					g2.setColor(new Color(80, 80, 80)); // dark gray
+					g2.fillRect((int)x - 12, (int)y - 7, 24, 14);
+				}
+				case MOTORCYCLE -> {
+					g2.setColor(new Color(255, 140, 0)); // dark orange
+					int[] xs = {(int)x, (int)x - 8, (int)x + 8};
+					int[] ys = {(int)y - 6, (int)y + 6, (int)y + 6};
+					g2.fillPolygon(xs, ys, 3);
+				}
+			}
 			g2.setColor(Color.WHITE);
-			g2.drawString(id, (int)x - 6, (int)y + 4);
+			g2.drawString(id, (int)x - 6, (int)y + 22);
 		}
 	}
 
