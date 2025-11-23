@@ -1,5 +1,7 @@
 package Node;
 
+import java.util.List;
+
 import Comunication.*;
 import Event.*;
 import Utils.*;
@@ -36,7 +38,9 @@ public class Entrance {
         
         while (true) {
             VehicleTypes type = VehicleTypes.values()[rnd.nextInt(VehicleTypes.values().length)];
-            Vehicle v = new Vehicle(entrance + "-V" + counter++, type, PathEnum.E3_CR3_S);
+            List<PathEnum> possiblePaths = PathEnum.getPathsFromEntrance(entrance);
+            PathEnum path = possiblePaths.get(rnd.nextInt(possiblePaths.size()));
+            Vehicle v = new Vehicle(entrance + "-V" + counter++, type, path);
             outgoingQueue.add(v);
 
             System.out.println("[Entrance] Vehicle created: " + v.getId() +
