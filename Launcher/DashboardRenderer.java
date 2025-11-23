@@ -304,6 +304,32 @@ public class DashboardRenderer extends JPanel {
             g2.fillOval(ix + 2, iy + 4, 10, 10);
             g2.setColor(isRed ? greenOff : greenOn);
             g2.fillOval(ix + 2, iy + 14, 10, 10);
+
+            // label with road name — draw on a small rounded semi-opaque background for readability
+            Font origLabelFont = g2.getFont();
+            Font labelFont = origLabelFont.deriveFont(Font.BOLD, 12f);
+            g2.setFont(labelFont);
+            FontMetrics fmLabel = g2.getFontMetrics(labelFont);
+            String label = road.name();
+            int padding = 6;
+            int textW = fmLabel.stringWidth(label);
+            int textH = fmLabel.getHeight();
+            int labelX = ix + w + 8;
+            int labelBaseline = iy + h/2 + fmLabel.getAscent()/2;
+
+            int rectX = labelX - padding;
+            int rectY = labelBaseline - fmLabel.getAscent() - padding;
+            int rectW = textW + padding * 2;
+            int rectH = textH + padding * 2;
+
+            g2.setColor(new Color(255,255,255,230));
+            g2.fillRoundRect(rectX, rectY, rectW, rectH, 8, 8);
+            g2.setColor(new Color(0,0,0,160));
+            g2.drawRoundRect(rectX, rectY, rectW, rectH, 8, 8);
+
+            g2.setColor(Color.BLACK);
+            g2.drawString(label, labelX, labelBaseline);
+            g2.setFont(origLabelFont);
         }
     }
 

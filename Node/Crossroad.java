@@ -45,8 +45,6 @@ public class Crossroad {
             trafficLight.start();
         }
 
-        
-
         // Recebe veículos vindos doutros nós
         new Receiver(vehiclesToSort, crossroad.getPort(), crossroad, clock).start();
 
