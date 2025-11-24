@@ -39,12 +39,25 @@ public class Entrance {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
+        List<PathEnum> possiblePaths = PathEnum.getPathsFromEntrance(entrance);
+        int probabilitySum = 0;
+        for(PathEnum path : possiblePaths) {
+            probabilitySum += path.getProbToBeSelected();
+        }
+        
         while (true) {
             VehicleTypes type = VehicleTypes.values()[rnd.nextInt(VehicleTypes.values().length)];
-            List<PathEnum> possiblePaths = PathEnum.getPathsFromEntrance(entrance);
-            PathEnum path = possiblePaths.get(rnd.nextInt(possiblePaths.size()));
-            Vehicle v = new Vehicle(entrance + "-V" + counter++, type, path);
+            int value = rnd.nextInt(probabilitySum);
+            int cummulativeProb = 0;
+            PathEnum selectedPath = possiblePaths.get(0);
+            for(PathEnum path : possiblePaths) {
+                cummulativeProb += path.getProbToBeSelected();
+                if(value < cummulativeProb) {
+                    selectedPath = path;
+                    break;
+                }
+            }
+            Vehicle v = new Vehicle(entrance + "-V" + counter++, type, selectedPath);
             outgoingQueue.add(v);
 
             System.out.println("[Entrance] Vehicle created: " + v.getId() +

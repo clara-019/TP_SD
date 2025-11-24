@@ -7,10 +7,7 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 
 /**
- * VehicleSprite: representa o estado de desenho/animacao de um veículo.
- * - suporta animação com easing (cubic ease-in-out)
- * - orienta o sprite conforme a direção do movimento (retângulo girado)
- * - desenha o ID do veículo sobre um fundo semi-opaço para legibilidade
+ * Optimized VehicleSprite: pequenas melhorias para reduzir allocs em draw()
  */
 public class VehicleSprite {
     public final String id;
@@ -29,6 +26,14 @@ public class VehicleSprite {
     // orientation (radians) used for drawing
     private double angle = 0.0;
 
+    // cached appearance constants
+    private static final int LENGTH = 28;
+    private static final int WIDTH = 14;
+    private static final Color CAR_FILL = new Color(30, 144, 255);
+    private static final Color TRUCK_FILL = new Color(100, 100, 100);
+    private static final Color MOTOR_FILL = new Color(255, 140, 0);
+    private static final Color BORDER = new Color(30,30,30,160);
+
     public VehicleSprite(String id, Vehicle vehicle, double x, double y) {
         this.id = id;
         this.vehicle = vehicle;
@@ -36,9 +41,6 @@ public class VehicleSprite {
         this.startX = x; this.startY = y; this.tx = x; this.ty = y;
     }
 
-    /**
-     * Define o próximo alvo de animação e a duração em ms.
-     */
     public void setTarget(double tx, double ty, long durationMs) {
         this.startX = this.x; this.startY = this.y;
         this.tx = tx; this.ty = ty;
@@ -53,9 +55,6 @@ public class VehicleSprite {
     public void markForRemoval() { this.removeWhenArrives = true; }
     public boolean shouldRemoveNow() { return removeWhenArrives && !moving; }
 
-    /**
-     * Atualiza a posição do sprite. Retorna true se houve mudança (necessita repaint).
-     */
     public boolean updatePosition() {
         if (!moving) return false;
 
@@ -69,7 +68,6 @@ public class VehicleSprite {
         double newX = startX + (tx - startX) * e;
         double newY = startY + (ty - startY) * e;
 
-        // compute instantaneous angle based on velocity vector
         double vx = newX - x; double vy = newY - y;
         if (Math.hypot(vx, vy) > 1e-6) angle = Math.atan2(vy, vx);
 
@@ -79,27 +77,15 @@ public class VehicleSprite {
 
     private static double clamp(double v, double a, double b) { return Math.max(a, Math.min(b, v)); }
 
-    /**
-     * Cubic ease-in-out: smooth acceleration then deceleration
-     */
     private static double easeInOutCubic(double t) {
         return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 
     public void draw(Graphics2D g2) {
-        // choose appearance based on vehicle type
         VehicleTypes vt = vehicle.getType();
         if (vt == null) vt = VehicleTypes.CAR;
 
-        int length = 28; // along motion
-        int width = 14;  // across motion
-
-        Color fill = switch (vt) {
-            case CAR -> new Color(30, 144, 255);
-            case TRUCK -> new Color(100, 100, 100);
-            case MOTORCYCLE -> new Color(255, 140, 0);
-            default -> new Color(200, 200, 200);
-        };
+        Color fill = (vt == VehicleTypes.TRUCK) ? TRUCK_FILL : (vt == VehicleTypes.MOTORCYCLE ? MOTOR_FILL : CAR_FILL);
 
         // prepare transform for rotation
         AffineTransform old = g2.getTransform();
@@ -108,16 +94,16 @@ public class VehicleSprite {
 
         // draw body (rounded rectangle centered at 0,0)
         g2.setColor(fill);
-        g2.fillRoundRect(-length/2, -width/2, length, width, 6, 6);
+        g2.fillRoundRect(-LENGTH/2, -WIDTH/2, LENGTH, WIDTH, 6, 6);
 
         // subtle border
-        g2.setColor(new Color(30,30,30,160));
+        g2.setColor(BORDER);
         g2.setStroke(new BasicStroke(1.2f));
-        g2.drawRoundRect(-length/2, -width/2, length, width, 6, 6);
+        g2.drawRoundRect(-LENGTH/2, -WIDTH/2, LENGTH, WIDTH, 6, 6);
 
         // small directional detail (windshield)
         g2.setColor(new Color(255,255,255,90));
-        g2.fillRect(length/6, -width/2 + 2, length/6, width - 4);
+        g2.fillRect(LENGTH/6, -WIDTH/2 + 2, LENGTH/6, WIDTH - 4);
 
         // restore transform
         g2.setTransform(old);
@@ -127,12 +113,11 @@ public class VehicleSprite {
         Font idFont = orig.deriveFont(Font.BOLD, 12f);
         FontMetrics fm = g2.getFontMetrics(idFont);
         int textW = fm.stringWidth(id);
-        int textH = fm.getHeight();
         int bx = (int) Math.round(x - textW/2.0);
-        int by = (int) Math.round(y - width/2.0 - 8);
+        int by = (int) Math.round(y - WIDTH/2.0 - 8);
 
         g2.setColor(new Color(0,0,0,150));
-        g2.fillRoundRect(bx - 6, by - fm.getAscent(), textW + 12, textH, 8, 8);
+        g2.fillRoundRect(bx - 6, by - fm.getAscent(), textW + 12, fm.getHeight(), 8, 8);
         g2.setColor(Color.WHITE);
         g2.setFont(idFont);
         g2.drawString(id, bx, by);

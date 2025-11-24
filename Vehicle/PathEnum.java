@@ -9,18 +9,25 @@ import Node.*;
  * Cada percurso é uma sequência de cruzamentos
  */
 public enum PathEnum {
-    E1_CR1_CR4_CR5_S, // Percurso: E1 → CR1 → CR4 → CR5 → S
-    E1_CR1_CR2_CR5_S, // Percurso: E1 → CR1 → CR2 → CR5 → S
-    E1_CR1_CR2_CR3_S, // Percurso: E1 → CR1 → CR2 → CR3 → S
-    E2_CR2_CR5_S,    // Percurso: E2 → CR2 → CR5 → S
-    E2_CR2_CR3_S,    // Percurso: E2 → CR2 → CR3 → S
-    E2_CR2_CR1_CR4_CR5_S, // Percurso: E2 → CR2 → CR1 → CR4 → CR5 → S
-    E3_CR3_S, // Percurso: E3 → CR3 → S
-    E3_CR3_CR2_CR5_S, // Percurso: E3 → CR3 → CR2 → CR5 → S
-    E3_CR3_CR2_CR1_CR4_CR5_S; // Percurso: E3 → CR3 → CR2 → CR1 → CR4 → CR5 → S
+    E1_CR1_CR4_CR5_S(100), // Percurso: E1 → CR1 → CR4 → CR5 → S
+    E1_CR1_CR2_CR5_S(1), // Percurso: E1 → CR1 → CR2 → CR5 → S
+    E1_CR1_CR2_CR3_S(1), // Percurso: E1 → CR1 → CR2 → CR3 → S
+    E2_CR2_CR5_S(34), // Percurso: E2 → CR2 → CR5 → S
+    E2_CR2_CR3_S(33), // Percurso: E2 → CR2 → CR3 → S
+    E2_CR2_CR1_CR4_CR5_S(33), // Percurso: E2 → CR2 → CR1 → CR4 → CR5 → S
+    E3_CR3_S(34), // Percurso: E3 → CR3 → S
+    E3_CR3_CR2_CR5_S(33), // Percurso: E3 → CR3 → CR2 → CR5 → S
+    E3_CR3_CR2_CR1_CR4_CR5_S(33); // Percurso: E3 → CR3 → CR2 → CR1 → CR4 → CR5 → S
+
+    private final int probToBeSelected;
+
+    PathEnum(int probToBeSelected) {
+        this.probToBeSelected = probToBeSelected;
+    }
 
     /**
      * Retorna a sequência de cruzamentos do percurso
+     * 
      * @return Lista ordenada de cruzamentos
      */
     public List<NodeEnum> getPath() {
@@ -42,7 +49,8 @@ public enum PathEnum {
             case E3_CR3_CR2_CR5_S:
                 return Arrays.asList(NodeEnum.E3, NodeEnum.CR3, NodeEnum.CR2, NodeEnum.CR5, NodeEnum.S);
             case E3_CR3_CR2_CR1_CR4_CR5_S:
-                return Arrays.asList(NodeEnum.E3, NodeEnum.CR3, NodeEnum.CR2, NodeEnum.CR1, NodeEnum.CR4, NodeEnum.CR5, NodeEnum.S);
+                return Arrays.asList(NodeEnum.E3, NodeEnum.CR3, NodeEnum.CR2, NodeEnum.CR1, NodeEnum.CR4, NodeEnum.CR5,
+                        NodeEnum.S);
             default:
                 return Collections.emptyList();
         }
@@ -64,8 +72,14 @@ public enum PathEnum {
     @Override
     public String toString() {
         switch (this) {
-            case E3_CR3_S: return "E3 -> CR3 -> S";
-            default: return "Unknown Path";
+            case E3_CR3_S:
+                return "E3 -> CR3 -> S";
+            default:
+                return "Unknown Path";
         }
+    }
+
+    public int getProbToBeSelected() {
+        return probToBeSelected;
     }
 }

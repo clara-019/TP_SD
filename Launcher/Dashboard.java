@@ -15,7 +15,6 @@ import Node.RoadEnum;
 import Vehicle.Vehicle;
 import java.awt.*;
 import java.util.*;
-import java.util.List;
 import java.util.concurrent.PriorityBlockingQueue;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -34,6 +33,8 @@ public class Dashboard extends JFrame {
     private Simulator simulator;
     private PriorityBlockingQueue<Event> eventQueue;
     private Thread eventConsumer;
+    private Timer autoStopTimer;
+    private volatile boolean gracefulStopping = false;
 
     private final Map<String, VehicleSprite> sprites = new HashMap<>();
     private final Map<NodeEnum, Point> nodePositions = new HashMap<>();
@@ -41,13 +42,11 @@ public class Dashboard extends JFrame {
 
     private JTextArea logArea;
     private JLabel statusLabel;
-    // Statistics UI + counters
     private JLabel statsActiveLabel;
     private JLabel statsCreatedLabel;
     private JLabel statsExitedLabel;
     private JLabel statsAvgTimeLabel;
 
-    // runtime stats
     private int totalCreated = 0;
     private int totalExited = 0;
     private long totalTravelTimeMs = 0L;
@@ -67,9 +66,6 @@ public class Dashboard extends JFrame {
         renderer = new DashboardRenderer(nodePositions, sprites, trafficLights);
         add(renderer, BorderLayout.CENTER);
 
-        // =====================================
-        // TOP PANEL
-        // =====================================
         JPanel top = new JPanel(new BorderLayout());
         top.setBackground(new Color(34, 40, 49));
         top.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
@@ -78,7 +74,7 @@ public class Dashboard extends JFrame {
         JButton stopBtn = makeButton("Stop");
 
         startBtn.addActionListener(e -> startSimulation());
-        stopBtn.addActionListener(e -> stopSimulation());
+        stopBtn.addActionListener(e -> requestGracefulStop());
 
         JPanel controls = new JPanel();
         controls.setOpaque(false);
@@ -94,18 +90,12 @@ public class Dashboard extends JFrame {
 
         add(top, BorderLayout.NORTH);
 
-        // =====================================
-        // LOG PANEL
-        // =====================================
         logArea = new JTextArea(10, 50);
         logArea.setEditable(false);
         logArea.setFont(new Font("Consolas", Font.PLAIN, 13));
         add(new JScrollPane(logArea), BorderLayout.SOUTH);
 
-        // =====================================
-        // ANIMATION TIMER
-        // =====================================
-        new Timer(30, e -> {
+        new Timer(80, e -> {
             boolean changed = false;
             synchronized (sprites) {
                 for (Iterator<Map.Entry<String, VehicleSprite>> it = sprites.entrySet().iterator(); it.hasNext(); ) {
@@ -120,9 +110,6 @@ public class Dashboard extends JFrame {
             if (changed) renderer.repaint();
         }).start();
 
-        // =====================================
-        // STATS PANEL (right)
-        // =====================================
         JPanel statsPanel = new JPanel();
         statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.Y_AXIS));
         statsPanel.setBackground(new Color(250, 250, 250));
@@ -146,6 +133,48 @@ public class Dashboard extends JFrame {
         add(statsPanel, BorderLayout.EAST);
     }
 
+    private void requestGracefulStop() {
+        if (simulator == null || !simulator.isRunning()) {
+            log("Simulator is not running");
+            return;
+        }
+        if (gracefulStopping) {
+            log("Graceful stop already in progress");
+            return;
+        }
+
+        gracefulStopping = true;
+
+        try {
+            simulator.stopEntranceProcesses();
+        } catch (Exception ex) {
+            log("Error requesting graceful stop: " + ex.getMessage());
+        }
+
+        statusLabel.setText("STOPPING (waiting vehicles...) ");
+        statusLabel.setForeground(new Color(200, 120, 0));
+
+        Thread waiter = new Thread(() -> {
+            try {
+                while (true) {
+                    boolean spritesEmpty;
+                    synchronized (sprites) { spritesEmpty = sprites.isEmpty(); }
+                    boolean queueEmpty = (eventQueue == null) || eventQueue.isEmpty();
+                    if (spritesEmpty && queueEmpty) break;
+                    Thread.sleep(200);
+                }
+                SwingUtilities.invokeLater(() -> {
+                    stopSimulation();
+                    gracefulStopping = false;
+                });
+            } catch (InterruptedException ignored) {
+                gracefulStopping = false;
+            }
+        });
+        waiter.setDaemon(true);
+        waiter.start();
+    }
+
     private JButton makeButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -162,17 +191,14 @@ public class Dashboard extends JFrame {
 
     Map<NodeEnum, Point> grid = new LinkedHashMap<>();
 
-    // Coluna 0: Entradas
     grid.put(NodeEnum.E1, new Point(0 * cellW + cellW/2, 0 * cellH + cellH/2));
     grid.put(NodeEnum.E2, new Point(0 * cellW + cellW/2, 1 * cellH + cellH/2));
     grid.put(NodeEnum.E3, new Point(0 * cellW + cellW/2, 2 * cellH + cellH/2));
 
-    // Coluna 1: Crossroads centrais
     grid.put(NodeEnum.CR1, new Point(1 * cellW + cellW/2, 0 * cellH + cellH/2));
     grid.put(NodeEnum.CR2, new Point(1 * cellW + cellW/2, 1 * cellH + cellH/2));
     grid.put(NodeEnum.CR3, new Point(1 * cellW + cellW/2, 2 * cellH + cellH/2));
 
-    // Coluna 2: Crossroads + saída
     grid.put(NodeEnum.CR4, new Point(2 * cellW + cellW/2, 0 * cellH + cellH/2));
     grid.put(NodeEnum.CR5, new Point(2 * cellW + cellW/2, 1 * cellH + cellH/2));
     grid.put(NodeEnum.S,   new Point(2 * cellW + cellW/2, 2 * cellH + cellH/2));
@@ -180,7 +206,6 @@ public class Dashboard extends JFrame {
     nodePositions.clear();
     nodePositions.putAll(grid);
 
-    // Inicializar semáforos das roads
     trafficLights.clear();
     for (RoadEnum r : RoadEnum.values()) {
         if (r.getDestination().getType() == NodeType.CROSSROAD) {
@@ -207,14 +232,12 @@ public class Dashboard extends JFrame {
 
         eventConsumer = new Thread(() -> {
             try {
-                // Protegemos contra NPE: verifica simulator != null também
                 while (simulator != null && simulator.isRunning()) {
-                    Event ev = eventQueue.take(); // bloqueia até chegar evento
+                    Event ev = eventQueue.take();
                     handleEvent(ev);
                 }
             } catch (InterruptedException ignored) {
             } catch (Exception ex) {
-                // Log inesperado para debugging
                 log("Event consumer crashed: " + ex.getMessage());
             }
         });
@@ -222,19 +245,32 @@ public class Dashboard extends JFrame {
         eventConsumer.start();
 
         log("Simulator started");
+
+        if (autoStopTimer != null && autoStopTimer.isRunning()) {
+            autoStopTimer.stop();
+        }
+        autoStopTimer = new Timer(60_000, e -> {
+            log("Auto-stop: 60 seconds elapsed — requesting graceful stop.");
+            requestGracefulStop();
+        });
+        autoStopTimer.setRepeats(false);
+        autoStopTimer.start();
     }
 
     private void stopSimulation() {
         if (simulator != null) simulator.stopSimulation();
         if (eventConsumer != null) eventConsumer.interrupt();
 
+        if (autoStopTimer != null) {
+            autoStopTimer.stop();
+            autoStopTimer = null;
+        }
+
         statusLabel.setText("STOPPED");
         statusLabel.setForeground(Color.RED);
 
-        // Limpamos a fila de eventos (se existir)
         if (eventQueue != null) {
             while ((eventQueue.poll()) != null) {
-                // opcional: log de descarte
             }
         }
 
@@ -250,13 +286,10 @@ public class Dashboard extends JFrame {
         if (ev == null) return;
         log(ev.toString());
 
-        // TRAFFIC LIGHT CHANGES
         if (ev instanceof SignalChangeEvent s) {
-            // Se evento especificar estrada, atualiza só essa.
             if (s.getRoad() != null) {
                 trafficLights.put(s.getRoad(), s.getSignalColor());
             } else {
-                // Fallback: atualiza todas as estradas que chegam ao cruzamento indicado
                 for (RoadEnum r : RoadEnum.getRoadsToCrossroad(s.getNode())) {
                     trafficLights.put(r, s.getSignalColor());
                 }
@@ -265,9 +298,7 @@ public class Dashboard extends JFrame {
             return;
         }
 
-        // Veículo relacionado a eventos
         if (!(ev instanceof VehicleEvent ve)) {
-            // Tipo de evento desconhecido para esta camada (poderá existir noutros módulos)
             log("Evento não processado pelo Dashboard: " + ev.getClass().getSimpleName());
             return;
         }
@@ -288,10 +319,8 @@ public class Dashboard extends JFrame {
         switch (type) {
 
             case NEW_VEHICLE -> {
-                // cria sprite parado no nó de origem (ou fallback para centro do painel)
                 Point p = nodePositions.get(ve.getNode());
                 if (p == null) {
-                    // fallback: coloca no centro do painel (evita NPEs)
                     p = new Point(renderer.getWidth() / 2, renderer.getHeight() / 2);
                     nodePositions.put(ve.getNode(), p);
                 }
@@ -299,12 +328,10 @@ public class Dashboard extends JFrame {
                     if (!sprites.containsKey(id)) {
                         sprites.put(id, new VehicleSprite(id, v, p.x, p.y));
                     } else {
-                        // Se já existir, atualiza posição inicial
                         VehicleSprite s = sprites.get(id);
                         s.x = p.x; s.y = p.y;
                     }
                 }
-                // stats: created++
                 synchronized (this) {
                     totalCreated++;
                 }
@@ -312,9 +339,7 @@ public class Dashboard extends JFrame {
             }
 
             case VEHICLE_DEPARTURE -> {
-                // Inicia movimento entre nós
                 handleDeparture(ve, v);
-                // record departure timestamp for travel time stats
                 synchronized (departTimestamps) {
                     departTimestamps.put(id, System.currentTimeMillis());
                 }
@@ -322,12 +347,10 @@ public class Dashboard extends JFrame {
             }
 
             case VEHICLE_ARRIVAL -> {
-                // Snap ao nó (posição final)
                 synchronized (sprites) {
                     VehicleSprite s = sprites.get(id);
                     Point p = nodePositions.get(ve.getNode());
                     if (s == null) {
-                        // Se não existir sprite (evento desordenado), cria e posiciona
                         if (p == null) {
                             p = new Point(renderer.getWidth() / 2, renderer.getHeight() / 2);
                             nodePositions.put(ve.getNode(), p);
@@ -338,7 +361,6 @@ public class Dashboard extends JFrame {
                         s.y = p.y;
                     }
                 }
-                // compute trip time if we have a departure timestamp
                 Long dep;
                 synchronized (departTimestamps) {
                     dep = departTimestamps.remove(id);
@@ -358,13 +380,11 @@ public class Dashboard extends JFrame {
                     VehicleSprite s = sprites.get(id);
                     if (s != null) s.markForRemoval();
                     else {
-                        // se não existe sprite, nada a fazer
                     }
                 }
                 synchronized (this) {
                     totalExited++;
                 }
-                // clean up any pending departure timestamp
                 synchronized (departTimestamps) {
                     departTimestamps.remove(id);
                 }
@@ -372,7 +392,6 @@ public class Dashboard extends JFrame {
             }
 
             default -> {
-                // EventType adicionado futuramente? Log para debug
                 log("Tipo de VehicleEvent não tratado: " + type);
             }
         }
@@ -412,7 +431,6 @@ public class Dashboard extends JFrame {
         synchronized (sprites) {
             VehicleSprite s = sprites.get(id);
 
-            // se sprite não existe (evento fora de ordem), criamos no nó de origem
             if (s == null) {
                 Point originPos = nodePositions.get(ve.getNode());
                 if (originPos == null) {
@@ -425,14 +443,12 @@ public class Dashboard extends JFrame {
 
             NodeEnum next = findNextNode(v, ve.getNode());
             if (next == null) {
-                // sem próximo nó (talvez seja saída direta) — marca remoção segura
                 s.markForRemoval();
                 return;
             }
 
             RoadEnum road = findRoad(ve.getNode(), next);
             if (road == null) {
-                // não encontrou estrada; faz snap e marca remoção (evita bloqueio visual)
                 Point destP = nodePositions.get(next);
                 if (destP != null) {
                     s.setTarget(destP.x, destP.y, 500);
@@ -444,13 +460,12 @@ public class Dashboard extends JFrame {
 
             Point dest = nodePositions.get(next);
             if (dest == null) {
-                // fallback para centro
                 dest = new Point(renderer.getWidth()/2, renderer.getHeight()/2);
                 nodePositions.put(next, dest);
             }
 
             long base = v.getType().getTimeToPass(road.getTime());
-            long anim = (long) (base * 2.5); // factor de animação para visual mais lento/agradavel
+            long anim = (long) (base * 2.5);
             s.setTarget(dest.x, dest.y, anim);
         }
     }
@@ -458,7 +473,7 @@ public class Dashboard extends JFrame {
     private NodeEnum findNextNode(Vehicle v, NodeEnum current) {
         if (v.getPath() == null) return null;
 
-        List<NodeEnum> list = v.getPath().getPath();
+        java.util.List<NodeEnum> list = v.getPath().getPath();
         for (int i = 0; i < list.size() - 1; i++)
             if (list.get(i) == current)
                 return list.get(i + 1);

@@ -5,12 +5,13 @@ import Node.*;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import Event.*;
 
 public class Simulator {
     private volatile boolean running;
-    private List<Process> processes;
+    private java.util.Map<NodeEnum, Process> processes;
 
     private PriorityBlockingQueue<Event> eventQueue = new PriorityBlockingQueue<Event>(10, Comparator.comparingLong(Event::getLogicalClock));
     
@@ -18,7 +19,7 @@ public class Simulator {
 
     public Simulator() {
         this.running = false;
-        this.processes = new ArrayList<>();
+        this.processes = new java.util.HashMap<>();
         this.javaCmd = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
     }
 
@@ -61,14 +62,6 @@ public class Simulator {
 
         System.out.println("Simulation fully initialized!");
         System.out.println("=====================================");
-
-        while (running) {
-            try { Thread.sleep(200); } catch (InterruptedException ignored) {}
-        }
-
-        stopAllProcesses();
-        System.out.println("=====================================");
-        System.out.println("SIMULATION TERMINATED!");
     }
 
     private void startEntranceProcess(NodeEnum entrance, String classpath, File workDir) {
@@ -76,7 +69,7 @@ public class Simulator {
             ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, "Node.Entrance", entrance.toString());
             pb.directory(workDir);
             Process process = pb.start();
-            processes.add(process);
+            processes.put(entrance, process);
 
             System.out.println(" Entrance " + entrance + " started on port " + entrance.getPort());
 
@@ -90,7 +83,7 @@ public class Simulator {
             ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, "Node.Exit", exit.toString());
             pb.directory(workDir);
             Process process = pb.start();
-            processes.add(process);
+            processes.put(exit, process);
 
             System.out.println(" Exit " + exit + " started on port " + exit.getPort());
 
@@ -104,7 +97,7 @@ public class Simulator {
             ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, "Node.Crossroad", crossroad.toString());
             pb.directory(workDir);
             Process process = pb.start();
-            processes.add(process);
+            processes.put(crossroad, process);
 
             System.out.println(" Crossroad " + crossroad + " started on port " + crossroad.getPort());
 
@@ -116,25 +109,91 @@ public class Simulator {
 
     private void stopAllProcesses() {
         System.out.println("Stopping all processes...");
-
-        for (Process process : processes) {
+        for (Map.Entry<NodeEnum, Process> e : new ArrayList<>(processes.entrySet())) {
+            NodeEnum n = e.getKey();
+            Process p = e.getValue();
+            if (p == null) {
+                processes.remove(n);
+                continue;
+            }
             try {
-                if (process.isAlive()) {
-                    process.destroy();
-                    try { Thread.sleep(200); } catch (InterruptedException ignored) {}
-                    if (process.isAlive()) process.destroyForcibly();
+                if (!p.isAlive()) {
+                    System.out.println("Process " + n + " already stopped");
+                    processes.remove(n);
+                    continue;
                 }
-            } catch (Exception ignored) {}
+
+                System.out.println("Attempting graceful destroy() for " + n + " (pid=" + safePid(p) + ")");
+                p.destroy();
+                // wait up to 1s for graceful exit
+                if (!p.waitFor(1, TimeUnit.SECONDS)) {
+                    System.out.println("Process " + n + " did not exit after destroy(), forcing destroyForcibly()");
+                    p.destroyForcibly();
+                    if (!p.waitFor(1, TimeUnit.SECONDS)) {
+                        System.out.println("Process " + n + " still alive after destroyForcibly()");
+                    } else {
+                        System.out.println("Process " + n + " terminated after destroyForcibly()");
+                    }
+                } else {
+                    System.out.println("Process " + n + " exited cleanly after destroy()");
+                }
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                System.out.println("Interrupted while stopping process " + n);
+            } catch (Throwable ex) {
+                System.out.println("Error stopping process " + n + ": " + ex.getMessage());
+            } finally {
+                processes.remove(n);
+            }
         }
-        processes.clear();
-
-
     }
 
     public void stopSimulation() {
         stopAllProcesses();
         System.out.println("Stopped simulation...");
         running = false;
+    }
+
+    /**
+     * Stop only entrance processes so no new vehicles are injected; keep crossroads/exits
+     * alive so existing vehicles can flow through the system.
+     */
+    public void stopEntranceProcesses() {
+        System.out.println("Stopping entrance processes (graceful)");
+        for (Map.Entry<NodeEnum, Process> e : new ArrayList<>(processes.entrySet())) {
+            NodeEnum n = e.getKey();
+            Process p = e.getValue();
+            if (n.getType() == NodeType.ENTRANCE) {
+                try {
+                    if (p == null) {
+                        processes.remove(n);
+                        continue;
+                    }
+                    if (!p.isAlive()) {
+                        System.out.println("Entrance process " + n + " already stopped");
+                        processes.remove(n);
+                        continue;
+                    }
+                    System.out.println("Stopping entrance " + n + " (pid=" + safePid(p) + ") via destroy()");
+                    p.destroy();
+                    if (!p.waitFor(1, TimeUnit.SECONDS)) {
+                        System.out.println("Entrance " + n + " did not exit, forcing destroyForcibly()");
+                        p.destroyForcibly();
+                        if (!p.waitFor(1, TimeUnit.SECONDS)) System.out.println("Entrance " + n + " still alive after forcible destroy");
+                    }
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                } catch (Throwable t) {
+                    System.out.println("Error stopping entrance " + n + ": " + t.getMessage());
+                } finally {
+                    processes.remove(n);
+                }
+            }
+        }
+    }
+
+    private long safePid(Process p) {
+        try { return p.pid(); } catch (Throwable t) { return -1; }
     }
 
 
