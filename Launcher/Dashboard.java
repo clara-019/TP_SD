@@ -10,11 +10,16 @@ import Event.EventType;
 import Event.SignalChangeEvent;
 import Event.VehicleEvent;
 import Node.NodeEnum;
-import Node.RoadEnum;
 import Node.NodeType;
+import Node.RoadEnum;
 import Vehicle.Vehicle;
-
+import java.awt.*;
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.PriorityBlockingQueue;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -23,10 +28,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
-import java.awt.*;
-import java.util.*;
-import java.util.List;
-import java.util.concurrent.PriorityBlockingQueue;
 
 public class Dashboard extends JFrame {
 
@@ -40,6 +41,19 @@ public class Dashboard extends JFrame {
 
     private JTextArea logArea;
     private JLabel statusLabel;
+    // Statistics UI + counters
+    private JLabel statsActiveLabel;
+    private JLabel statsCreatedLabel;
+    private JLabel statsExitedLabel;
+    private JLabel statsAvgTimeLabel;
+
+    // runtime stats
+    private int totalCreated = 0;
+    private int totalExited = 0;
+    private long totalTravelTimeMs = 0L;
+    private int completedTrips = 0;
+    private final Map<String, Long> departTimestamps = new HashMap<>();
+
     private DashboardRenderer renderer;
 
     public Dashboard() {
@@ -105,6 +119,31 @@ public class Dashboard extends JFrame {
             }
             if (changed) renderer.repaint();
         }).start();
+
+        // =====================================
+        // STATS PANEL (right)
+        // =====================================
+        JPanel statsPanel = new JPanel();
+        statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.Y_AXIS));
+        statsPanel.setBackground(new Color(250, 250, 250));
+        statsPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+
+        JLabel title = new JLabel("Statistics");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        statsPanel.add(title);
+        statsPanel.add(Box.createVerticalStrut(8));
+
+        statsCreatedLabel = new JLabel("Created: 0");
+        statsActiveLabel = new JLabel("Active: 0");
+        statsExitedLabel = new JLabel("Exited: 0");
+        statsAvgTimeLabel = new JLabel("Avg trip (s): 0.0");
+
+        statsPanel.add(statsCreatedLabel);
+        statsPanel.add(statsActiveLabel);
+        statsPanel.add(statsExitedLabel);
+        statsPanel.add(statsAvgTimeLabel);
+
+        add(statsPanel, BorderLayout.EAST);
     }
 
     private JButton makeButton(String text) {
@@ -265,11 +304,21 @@ public class Dashboard extends JFrame {
                         s.x = p.x; s.y = p.y;
                     }
                 }
+                // stats: created++
+                synchronized (this) {
+                    totalCreated++;
+                }
+                updateStatsLabelsAsync();
             }
 
             case VEHICLE_DEPARTURE -> {
                 // Inicia movimento entre nós
                 handleDeparture(ve, v);
+                // record departure timestamp for travel time stats
+                synchronized (departTimestamps) {
+                    departTimestamps.put(id, System.currentTimeMillis());
+                }
+                updateStatsLabelsAsync();
             }
 
             case VEHICLE_ARRIVAL -> {
@@ -289,6 +338,19 @@ public class Dashboard extends JFrame {
                         s.y = p.y;
                     }
                 }
+                // compute trip time if we have a departure timestamp
+                Long dep;
+                synchronized (departTimestamps) {
+                    dep = departTimestamps.remove(id);
+                }
+                if (dep != null) {
+                    long dur = System.currentTimeMillis() - dep;
+                    synchronized (this) {
+                        totalTravelTimeMs += dur;
+                        completedTrips++;
+                    }
+                    updateStatsLabelsAsync();
+                }
             }
 
             case VEHICLE_EXIT -> {
@@ -299,6 +361,14 @@ public class Dashboard extends JFrame {
                         // se não existe sprite, nada a fazer
                     }
                 }
+                synchronized (this) {
+                    totalExited++;
+                }
+                // clean up any pending departure timestamp
+                synchronized (departTimestamps) {
+                    departTimestamps.remove(id);
+                }
+                updateStatsLabelsAsync();
             }
 
             default -> {
@@ -308,6 +378,33 @@ public class Dashboard extends JFrame {
         }
 
         SwingUtilities.invokeLater(renderer::repaint);
+    }
+
+    private void updateStatsLabelsAsync() {
+        SwingUtilities.invokeLater(this::updateStatsLabels);
+    }
+
+    private void updateStatsLabels() {
+        int active;
+        synchronized (sprites) { active = sprites.size(); }
+
+        int created;
+        int exited;
+        long travelMs;
+        int trips;
+        synchronized (this) {
+            created = totalCreated;
+            exited = totalExited;
+            travelMs = totalTravelTimeMs;
+            trips = completedTrips;
+        }
+
+        double avgSec = (trips == 0) ? 0.0 : (travelMs / 1000.0 / trips);
+
+        if (statsActiveLabel != null) statsActiveLabel.setText("Active: " + active);
+        if (statsCreatedLabel != null) statsCreatedLabel.setText("Created: " + created);
+        if (statsExitedLabel != null) statsExitedLabel.setText("Exited: " + exited);
+        if (statsAvgTimeLabel != null) statsAvgTimeLabel.setText(String.format("Avg trip (s): %.2f", avgSec));
     }
 
     private void handleDeparture(VehicleEvent ve, Vehicle v) {
