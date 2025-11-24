@@ -10,7 +10,6 @@ import Utils.SynchronizedQueue;
 import Vehicle.Vehicle;
 
 public class TrafficLight extends Thread {
-    private static final int GREEN_LIGHT_DURATION_MS = 5000;
 
     private static final long TIME_TO_PASS_MS = 1000;
 
@@ -20,8 +19,7 @@ public class TrafficLight extends Thread {
     private final RoundRobin roundRobin;
 
     public TrafficLight(SynchronizedQueue<Vehicle> vehicleQueue,
-            RoadEnum road,
-            LogicalClock clock, RoundRobin roundRobin) {
+            RoadEnum road, LogicalClock clock, RoundRobin roundRobin) {
         this.vehicleQueue = vehicleQueue;
         this.road = road;
         this.clock = clock;
@@ -36,11 +34,11 @@ public class TrafficLight extends Thread {
                 roundRobin.esperarTurno(RoadEnum.getRoadsToCrossroad(road.getDestination()).indexOf(road));
 
                 long greenStartTime = System.currentTimeMillis();
-                long greenEndTime = greenStartTime + GREEN_LIGHT_DURATION_MS;
+                long greenEndTime = greenStartTime + road.getGreenLightDuration();
 
                 System.out.println("Traffic Light GREEN for: " + road);
                 Sender.sendToEventHandler(
-                    new SignalChangeEvent(currentNode, clock.get(), "Green", road));
+                        new SignalChangeEvent(currentNode, clock.get(), "Green", road));
 
                 while (true) {
                     long now = System.currentTimeMillis();
@@ -57,7 +55,7 @@ public class TrafficLight extends Thread {
                         break;
                     }
                     Thread.sleep(passTimeMs);
-                    
+
                     vehicleQueue.remove();
                     List<NodeEnum> path = vehicle.getPath().getPath();
                     int idx = path.indexOf(currentNode);
@@ -76,7 +74,7 @@ public class TrafficLight extends Thread {
                 }
                 System.out.println("Traffic Light RED for: " + road);
                 Sender.sendToEventHandler(
-                    new SignalChangeEvent(currentNode, clock.get(), "Red", road));
+                        new SignalChangeEvent(currentNode, clock.get(), "Red", road));
                 Thread.sleep(200);
                 roundRobin.terminarTurno();
 
