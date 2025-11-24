@@ -57,8 +57,6 @@ public class Crossroad {
             new PassRoad(arrivingQueue, passedQueue, roadsToCrossroad.get(0)).start();
             new TrafficLight(passedQueue, roadsToCrossroad.get(0), clock, roundRobin).start();
             new PedestrianLight(roundRobin, 1).start();
-
-
             new Receiver(arrivingQueue, crossroad.getPort(), crossroad, clock).start();
         }
     }

@@ -1,8 +1,3 @@
-// =========================================================
-//  DASHBOARD REFEITO: Melhor estrutura + melhor visual
-//  (versão com tratamento completo de EventType)
-// =========================================================
-
 package Launcher;
 
 import Event.Event;
@@ -447,7 +442,7 @@ public class Dashboard extends JFrame {
                 return;
             }
 
-            RoadEnum road = findRoad(ve.getNode(), next);
+            RoadEnum road = RoadEnum.toRoadEnum(ve.getNode().toString() + "_" + next.toString());
             if (road == null) {
                 Point destP = nodePositions.get(next);
                 if (destP != null) {
@@ -478,13 +473,6 @@ public class Dashboard extends JFrame {
             if (list.get(i) == current)
                 return list.get(i + 1);
 
-        return null;
-    }
-
-    private RoadEnum findRoad(NodeEnum a, NodeEnum b) {
-        for (RoadEnum r : RoadEnum.values())
-            if (r.getOrigin() == a && r.getDestination() == b)
-                return r;
         return null;
     }
 

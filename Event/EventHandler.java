@@ -8,9 +8,15 @@ import java.io.*;
 public class EventHandler extends Thread {
     public static final int PORT = 8000;
     private PriorityBlockingQueue<Event> eventQueue;
+    private volatile boolean running = true;
 
-    public EventHandler(PriorityBlockingQueue<Event> p) {
-        eventQueue = p;
+    public EventHandler(PriorityBlockingQueue<Event> p, boolean running) {
+        this.running = running;
+        this.eventQueue = p;
+    }
+
+    public void stopHandler(){
+        this.running = false;
     }
 
     @Override
@@ -18,7 +24,7 @@ public class EventHandler extends Thread {
         ServerSocket serverSocket = null;
         try {
             serverSocket = new ServerSocket(PORT);
-            while (true) {
+            while (running) {
                 try {
                     Socket socket = serverSocket.accept();
                     ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
@@ -45,10 +51,10 @@ public class EventHandler extends Thread {
     }
 
     private void processEvent(Event event) {
-        if (event.getType() == EventType.NEW_VEHICLE){
+        if (event.getType() == EventType.NEW_VEHICLE) {
             VehicleEvent ve = (VehicleEvent) event;
             ve.getVehicle().setEntranceTime(System.currentTimeMillis());
-        }else if (event.getType() == EventType.VEHICLE_EXIT){
+        } else if (event.getType() == EventType.VEHICLE_EXIT) {
             VehicleEvent ve = (VehicleEvent) event;
             ve.getVehicle().setExitTime(System.currentTimeMillis());
         }

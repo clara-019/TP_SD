@@ -15,6 +15,7 @@ public class Simulator {
 
     private PriorityBlockingQueue<Event> eventQueue = new PriorityBlockingQueue<Event>(10, Comparator.comparingLong(Event::getLogicalClock));
     
+    private EventHandler eventHandler;
     private String javaCmd;
 
     public Simulator() {
@@ -36,7 +37,8 @@ public class Simulator {
         String classpath = System.getProperty("java.class.path");
         File workDir = new File(System.getProperty("user.dir"));
 
-        new EventHandler(eventQueue).start();
+        eventHandler = new EventHandler(eventQueue, running);
+        eventHandler.start();
 
         System.out.println("Starting nodes...");
         for (NodeEnum node : NodeEnum.values()) {
@@ -125,7 +127,7 @@ public class Simulator {
 
                 System.out.println("Attempting graceful destroy() for " + n + " (pid=" + safePid(p) + ")");
                 p.destroy();
-                // wait up to 1s for graceful exit
+
                 if (!p.waitFor(1, TimeUnit.SECONDS)) {
                     System.out.println("Process " + n + " did not exit after destroy(), forcing destroyForcibly()");
                     p.destroyForcibly();
@@ -150,14 +152,11 @@ public class Simulator {
 
     public void stopSimulation() {
         stopAllProcesses();
+        eventHandler.stopHandler();
         System.out.println("Stopped simulation...");
         running = false;
     }
 
-    /**
-     * Stop only entrance processes so no new vehicles are injected; keep crossroads/exits
-     * alive so existing vehicles can flow through the system.
-     */
     public void stopEntranceProcesses() {
         System.out.println("Stopping entrance processes (graceful)");
         for (Map.Entry<NodeEnum, Process> e : new ArrayList<>(processes.entrySet())) {

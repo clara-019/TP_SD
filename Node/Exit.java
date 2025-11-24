@@ -44,8 +44,6 @@ public class Exit {
 
         while (true) {
             Vehicle vehicle = passedQueue.remove();
-            if (vehicle == null)
-                continue;
             Sender.sendToEventHandler(new VehicleEvent(EventType.VEHICLE_EXIT, vehicle, exit, clock.tick()));
         }
 

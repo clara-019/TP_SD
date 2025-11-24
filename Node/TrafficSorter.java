@@ -20,7 +20,6 @@ public class TrafficSorter extends Thread {
     public void run() {
         while (true) {
             Vehicle vehicle = vehiclesToSort.remove();
-            if (vehicle == null) continue;
             System.out.println("[TrafficSorter " + node.toString() + "] Sorting vehicle " + vehicle.getId());
             List<NodeEnum> path = vehicle.getPath().getPath();
             NodeEnum previousNode = path.get(path.indexOf(node) - 1);

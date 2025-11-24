@@ -14,8 +14,8 @@ public class PassRoad extends Thread {
     private final RoadEnum road;
 
     public PassRoad(SynchronizedQueue<Vehicle> arrivingQueue,
-                    SynchronizedQueue<Vehicle> passedQueue,
-                    RoadEnum road) {
+            SynchronizedQueue<Vehicle> passedQueue,
+            RoadEnum road) {
 
         this.arrivingQueue = arrivingQueue;
         this.passedQueue = passedQueue;
@@ -29,10 +29,9 @@ public class PassRoad extends Thread {
 
         while (true) {
             try {
-                Vehicle vehicle = arrivingQueue.remove();
+                Vehicle vehicle = arrivingQueue.poll();
 
                 if (vehicle != null) {
-
                     SimpleEntry<Long, Vehicle> last = vehicleQueue.peekLast();
                     long travelTime = System.currentTimeMillis()
                             + vehicle.getType().getTimeToPass(road.getTime());
@@ -45,17 +44,14 @@ public class PassRoad extends Thread {
                     }
                 }
 
-                // Verifica se um veículo está pronto para avançar
                 SimpleEntry<Long, Vehicle> entry = vehicleQueue.peek();
 
                 if (entry != null && System.currentTimeMillis() >= entry.getKey()) {
-
                     vehicleQueue.remove();
-
                     Vehicle v = entry.getValue();
-
-                    // SOMENTE regista no passedQueue
                     passedQueue.add(v);
+                } else {
+                    Thread.sleep(50);
                 }
 
             } catch (Exception e) {
