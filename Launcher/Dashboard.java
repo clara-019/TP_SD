@@ -194,8 +194,7 @@ public class Dashboard extends JFrame {
 
         // Limpamos a fila de eventos (se existir)
         if (eventQueue != null) {
-            Event ev;
-            while ((ev = eventQueue.poll()) != null) {
+            while ((eventQueue.poll()) != null) {
                 // opcional: log de descarte
             }
         }
