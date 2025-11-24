@@ -23,32 +23,43 @@ public class Crossroad {
         }
 
         LogicalClock clock = new LogicalClock();
-        RoundRobin roundRobin = new RoundRobin(crossroad);
 
         List<RoadEnum> roadsToCrossroad = RoadEnum.getRoadsToCrossroad(crossroad);
+        RoundRobin roundRobin = null;
+        if (roadsToCrossroad.size() >= 2) {
 
-        Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues = new HashMap<>();
-        Map<RoadEnum, SynchronizedQueue<Vehicle>> passedQueues = new HashMap<>();
+            roundRobin = new RoundRobin(roadsToCrossroad.size());
+            Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues = new HashMap<>();
+            Map<RoadEnum, SynchronizedQueue<Vehicle>> passedQueues = new HashMap<>();
 
-        SynchronizedQueue<Vehicle> vehiclesToSort = new SynchronizedQueue<>();
+            SynchronizedQueue<Vehicle> vehiclesToSort = new SynchronizedQueue<>();
 
-        for (RoadEnum road : roadsToCrossroad) {
-            SynchronizedQueue<Vehicle> vehicleQueue = new SynchronizedQueue<>();
+            for (RoadEnum road : roadsToCrossroad) {
+                SynchronizedQueue<Vehicle> vehicleQueue = new SynchronizedQueue<>();
+                SynchronizedQueue<Vehicle> passedQueue = new SynchronizedQueue<>();
+
+                trafficQueues.put(road, vehicleQueue);
+                passedQueues.put(road, passedQueue);
+
+                PassRoad passRoad = new PassRoad(vehicleQueue, passedQueue, road);
+                TrafficLight trafficLight = new TrafficLight(passedQueue, road, clock, roundRobin);
+                passRoad.start();
+                trafficLight.start();
+            }
+
+            new Receiver(vehiclesToSort, crossroad.getPort(), crossroad, clock).start();
+            new TrafficSorter(trafficQueues, vehiclesToSort, crossroad).start();
+        } else {
+            roundRobin = new RoundRobin(2);
+            SynchronizedQueue<Vehicle> arrivingQueue = new SynchronizedQueue<>();
             SynchronizedQueue<Vehicle> passedQueue = new SynchronizedQueue<>();
 
-            trafficQueues.put(road, vehicleQueue);
-            passedQueues.put(road, passedQueue);
+            new PassRoad(arrivingQueue, passedQueue, roadsToCrossroad.get(0)).start();
+            new TrafficLight(passedQueue, roadsToCrossroad.get(0), clock, roundRobin).start();
+            new PedestrianLight(roundRobin, 1).start();
 
-            PassRoad passRoad = new PassRoad(vehicleQueue, passedQueue, road);
-            TrafficLight trafficLight = new TrafficLight(passedQueue, road, clock, roundRobin);
-            passRoad.start();
-            trafficLight.start();
+
+            new Receiver(arrivingQueue, crossroad.getPort(), crossroad, clock).start();
         }
-
-        // Recebe veículos vindos doutros nós
-        new Receiver(vehiclesToSort, crossroad.getPort(), crossroad, clock).start();
-
-        // Decide a que fila (estrada) pertence cada veículo
-        new TrafficSorter(trafficQueues, vehiclesToSort, crossroad).start();
     }
 }

@@ -33,7 +33,7 @@ public class TrafficLight extends Thread {
         NodeEnum currentNode = road.getDestination();
         while (true) {
             try {
-                roundRobin.esperarTurno(road);
+                roundRobin.esperarTurno(RoadEnum.getRoadsToCrossroad(road.getDestination()).indexOf(road));
 
                 long greenStartTime = System.currentTimeMillis();
                 long greenEndTime = greenStartTime + GREEN_LIGHT_DURATION_MS;

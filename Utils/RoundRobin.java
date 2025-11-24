@@ -4,9 +4,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import Node.NodeEnum;
-import Node.RoadEnum;
-
 public class RoundRobin {
     private final int totalThreads;
     private int turno = 0;
@@ -14,14 +11,14 @@ public class RoundRobin {
     private final Lock lock = new ReentrantLock();
     private final Condition cond = lock.newCondition();
 
-    public RoundRobin(NodeEnum node) {
-        this.totalThreads = RoadEnum.getRoadsToCrossroad(node).size();
+    public RoundRobin(int totalThreads) {
+        this.totalThreads = totalThreads;
     }
 
-    public void esperarTurno(RoadEnum road) throws InterruptedException {
+    public void esperarTurno(int id) throws InterruptedException {
         lock.lock();
         try {
-            while (turno != RoadEnum.getRoadsToCrossroad(road.getDestination()).indexOf(road)) {
+            while (turno != id) {
                 cond.await();
             }
         } finally {
