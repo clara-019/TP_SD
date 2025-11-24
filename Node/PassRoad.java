@@ -29,13 +29,10 @@ public class PassRoad extends Thread {
 
         while (true) {
             try {
-
-                // Espera veículo que ACABOU de passar o semáforo
                 Vehicle vehicle = arrivingQueue.remove();
 
                 if (vehicle != null) {
 
-                    // Lógica original de espaçamento
                     SimpleEntry<Long, Vehicle> last = vehicleQueue.peekLast();
                     long travelTime = System.currentTimeMillis()
                             + vehicle.getType().getTimeToPass(road.getTime());

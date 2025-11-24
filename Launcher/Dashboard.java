@@ -83,7 +83,7 @@ public class Dashboard extends JFrame {
         // =====================================
         // LOG PANEL
         // =====================================
-        logArea = new JTextArea(6, 50);
+        logArea = new JTextArea(10, 50);
         logArea.setEditable(false);
         logArea.setFont(new Font("Consolas", Font.PLAIN, 13));
         add(new JScrollPane(logArea), BorderLayout.SOUTH);
