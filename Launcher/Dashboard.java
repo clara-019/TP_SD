@@ -281,7 +281,8 @@ public class Dashboard extends JFrame {
         if (ev == null) return;
         log(ev.toString());
 
-        if (ev instanceof SignalChangeEvent s) {
+        if (ev instanceof SignalChangeEvent) {
+            SignalChangeEvent s = (SignalChangeEvent) ev;
             if (s.getRoad() != null) {
                 trafficLights.put(s.getRoad(), s.getSignalColor());
             } else {
@@ -293,10 +294,11 @@ public class Dashboard extends JFrame {
             return;
         }
 
-        if (!(ev instanceof VehicleEvent ve)) {
+        if (!(ev instanceof VehicleEvent)) {
             log("Evento não processado pelo Dashboard: " + ev.getClass().getSimpleName());
             return;
         }
+        VehicleEvent ve = (VehicleEvent) ev;
 
         Vehicle v = ve.getVehicle();
         if (v == null) {
@@ -312,8 +314,7 @@ public class Dashboard extends JFrame {
         }
 
         switch (type) {
-
-            case NEW_VEHICLE -> {
+            case NEW_VEHICLE: {
                 Point p = nodePositions.get(ve.getNode());
                 if (p == null) {
                     p = new Point(renderer.getWidth() / 2, renderer.getHeight() / 2);
@@ -331,17 +332,19 @@ public class Dashboard extends JFrame {
                     totalCreated++;
                 }
                 updateStatsLabelsAsync();
+                break;
             }
 
-            case VEHICLE_DEPARTURE -> {
+            case VEHICLE_DEPARTURE: {
                 handleDeparture(ve, v);
                 synchronized (departTimestamps) {
                     departTimestamps.put(id, System.currentTimeMillis());
                 }
                 updateStatsLabelsAsync();
+                break;
             }
 
-            case VEHICLE_ARRIVAL -> {
+            case VEHICLE_ARRIVAL: {
                 synchronized (sprites) {
                     VehicleSprite s = sprites.get(id);
                     Point p = nodePositions.get(ve.getNode());
@@ -368,9 +371,10 @@ public class Dashboard extends JFrame {
                     }
                     updateStatsLabelsAsync();
                 }
+                break;
             }
 
-            case VEHICLE_EXIT -> {
+            case VEHICLE_EXIT: {
                 synchronized (sprites) {
                     VehicleSprite s = sprites.get(id);
                     if (s != null) s.markForRemoval();
@@ -384,10 +388,12 @@ public class Dashboard extends JFrame {
                     departTimestamps.remove(id);
                 }
                 updateStatsLabelsAsync();
+                break;
             }
 
-            default -> {
+            default: {
                 log("Tipo de VehicleEvent não tratado: " + type);
+                break;
             }
         }
 

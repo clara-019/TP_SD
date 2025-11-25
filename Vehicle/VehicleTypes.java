@@ -24,11 +24,12 @@ public enum VehicleTypes {
     }
 
     public String getTypeToString() {
-        return switch (this) {
-            case CAR -> "Car";
-            case TRUCK -> "Truck";
-            case MOTORCYCLE -> "Motorcycle";
-        };
+         switch (this) {
+            case CAR : return "Car";
+            case TRUCK : return "Truck";
+            case MOTORCYCLE : return "Motorcycle";
+        }
+        return null;
     }
 
     public static VehicleTypes getVehicleTypeFromString(String typeStr) {
