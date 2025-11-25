@@ -41,7 +41,7 @@ public class Crossroad {
                 trafficQueues.put(road, vehicleQueue);
                 passedQueues.put(road, passedQueue);
 
-                PassRoad passRoad = new PassRoad(vehicleQueue, passedQueue, road);
+                PassRoad passRoad = new PassRoad(vehicleQueue, passedQueue, road, clock);
                 TrafficLight trafficLight = new TrafficLight(passedQueue, road, clock, roundRobin);
                 passRoad.start();
                 trafficLight.start();
@@ -54,7 +54,7 @@ public class Crossroad {
             SynchronizedQueue<Vehicle> arrivingQueue = new SynchronizedQueue<>();
             SynchronizedQueue<Vehicle> passedQueue = new SynchronizedQueue<>();
 
-            new PassRoad(arrivingQueue, passedQueue, roadsToCrossroad.get(0)).start();
+            new PassRoad(arrivingQueue, passedQueue, roadsToCrossroad.get(0), clock).start();
             new TrafficLight(passedQueue, roadsToCrossroad.get(0), clock, roundRobin).start();
             new PedestrianLight(roundRobin, 1).start();
             new Receiver(arrivingQueue, crossroad.getPort(), crossroad, clock).start();

@@ -32,7 +32,7 @@ public class Exit {
         for (RoadEnum road : roadsToExit) {
             SynchronizedQueue<Vehicle> trafficQueue = new SynchronizedQueue<>();
 
-            PassRoad passRoad = new PassRoad(trafficQueue, passedQueue, road);
+            PassRoad passRoad = new PassRoad(trafficQueue, passedQueue, road, clock);
 
             trafficQueues.put(road, trafficQueue);
 

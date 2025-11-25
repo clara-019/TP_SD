@@ -43,7 +43,7 @@ public class Receiver extends Thread {
                 Socket socket = serverSocket.accept();
                 ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
                 VehicleEvent event = (VehicleEvent) in.readObject();
-                Sender.sendToEventHandler(new VehicleEvent(EventType.VEHICLE_ARRIVAL, event.getVehicle(), node, clock.update(event.getLogicalClock())));
+                Sender.sendToEventHandler(new VehicleEvent(EventType.VEHICLE_ROAD_ARRIVAL, event.getVehicle(), node, clock.update(event.getLogicalClock())));
                 queue.add(event.getVehicle());
             }
         } catch (Exception e) {

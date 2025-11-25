@@ -344,21 +344,57 @@ public class Dashboard extends JFrame {
                 break;
             }
 
-            case VEHICLE_ARRIVAL: {
+            case VEHICLE_ROAD_ARRIVAL: {
+                // Vehicle entered the road towards ve.getNode()
                 synchronized (sprites) {
                     VehicleSprite s = sprites.get(id);
-                    Point p = nodePositions.get(ve.getNode());
+                    // ensure sprite exists; do not override an ongoing animation
                     if (s == null) {
-                        if (p == null) {
-                            p = new Point(renderer.getWidth() / 2, renderer.getHeight() / 2);
-                            nodePositions.put(ve.getNode(), p);
+                        // place at origin node (previous node in path) if available
+                        NodeEnum prev = findPreviousNode(v, ve.getNode());
+                        Point origin = (prev == null) ? nodePositions.get(ve.getNode()) : nodePositions.get(prev);
+                        if (origin == null) origin = new Point(renderer.getWidth() / 2, renderer.getHeight() / 2);
+                        s = new VehicleSprite(id, v, origin.x, origin.y);
+                        sprites.put(id, s);
+
+                        // animate part-way along the road towards destination
+                        NodeEnum destNode = ve.getNode();
+                        Point dest = nodePositions.get(destNode);
+                        if (dest != null) {
+                            Point mid = pointAlong(origin, dest, 0.45);
+                            RoadEnum road = RoadEnum.toRoadEnum((prev == null ? ve.getNode().toString() : prev.toString()) + "_" + destNode.toString());
+                            long base = (road == null) ? 800 : v.getType().getTimeToPass(road.getTime());
+                            long anim = Math.max(200, (long) (base * 1.2));
+                            s.setTarget(mid.x, mid.y, anim);
                         }
-                        sprites.put(id, new VehicleSprite(id, v, p.x, p.y));
-                    } else if (p != null) {
-                        s.x = p.x;
-                        s.y = p.y;
                     }
                 }
+                break;
+            }
+
+            case VEHICLE_SIGNAL_ARRIVAL: {
+                // Vehicle arrived at the semaphore for ve.getNode()
+                synchronized (sprites) {
+                    VehicleSprite s = sprites.get(id);
+                    if (s == null) {
+                        // create sprite at node center if missing
+                        Point p = nodePositions.get(ve.getNode());
+                        if (p == null) p = new Point(renderer.getWidth() / 2, renderer.getHeight() / 2);
+                        s = new VehicleSprite(id, v, p.x, p.y);
+                        sprites.put(id, s);
+                    }
+
+                    // compute semaphore (signal) position at node boundary and animate briefly to it
+                    NodeEnum prev = findPreviousNode(v, ve.getNode());
+                    Point origin = (prev == null) ? nodePositions.get(ve.getNode()) : nodePositions.get(prev);
+                    Point dest = nodePositions.get(ve.getNode());
+                    if (origin != null && dest != null) {
+                        Point signal = computeSignalPoint(origin, dest);
+                        s.setTarget(signal.x, signal.y, 120);
+                    }
+                }
+
+                // arriving at a signal typically finalizes a trip segment; check travel times
                 Long dep;
                 synchronized (departTimestamps) {
                     dep = departTimestamps.remove(id);
@@ -371,6 +407,7 @@ public class Dashboard extends JFrame {
                     }
                     updateStatsLabelsAsync();
                 }
+
                 break;
             }
 
@@ -480,6 +517,40 @@ public class Dashboard extends JFrame {
                 return list.get(i + 1);
 
         return null;
+    }
+
+    private NodeEnum findPreviousNode(Vehicle v, NodeEnum current) {
+        if (v.getPath() == null) return null;
+
+        java.util.List<NodeEnum> list = v.getPath().getPath();
+        for (int i = 1; i < list.size(); i++)
+            if (list.get(i) == current)
+                return list.get(i - 1);
+
+        return null;
+    }
+
+    // point at fraction t along the line origin->dest (0..1)
+    private Point pointAlong(Point origin, Point dest, double t) {
+        double x = origin.x + (dest.x - origin.x) * t;
+        double y = origin.y + (dest.y - origin.y) * t;
+        return new Point((int) Math.round(x), (int) Math.round(y));
+    }
+
+    // compute approximate semaphore point on the destination node rectangle
+    private Point computeSignalPoint(Point origin, Point dest) {
+        double dx = dest.x - origin.x;
+        double dy = dest.y - origin.y;
+        double len = Math.hypot(dx, dy); if (len == 0) len = 1;
+        double ux = dx / len; double uy = dy / len;
+
+        double hw = 44.0, hh = 28.0;
+        double tx = (Math.abs(ux) < 1e-6) ? Double.POSITIVE_INFINITY : (hw / Math.abs(ux));
+        double ty = (Math.abs(uy) < 1e-6) ? Double.POSITIVE_INFINITY : (hh / Math.abs(uy));
+        double t = Math.min(tx, ty);
+        double bx = dest.x - ux * t;
+        double by = dest.y - uy * t;
+        return new Point((int)Math.round(bx), (int)Math.round(by));
     }
 
     private void log(String s) {

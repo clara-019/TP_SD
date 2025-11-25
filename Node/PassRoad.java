@@ -2,6 +2,9 @@ package Node;
 
 import java.util.AbstractMap.SimpleEntry;
 
+
+import Comunication.Sender;
+import Event.*;
 import Utils.*;
 import Vehicle.*;
 
@@ -12,14 +15,16 @@ public class PassRoad extends Thread {
     private final SynchronizedQueue<Vehicle> arrivingQueue;
     private final SynchronizedQueue<Vehicle> passedQueue;
     private final RoadEnum road;
+    private final LogicalClock clock;
 
     public PassRoad(SynchronizedQueue<Vehicle> arrivingQueue,
             SynchronizedQueue<Vehicle> passedQueue,
-            RoadEnum road) {
-
+            RoadEnum road,
+            LogicalClock clock) {
         this.arrivingQueue = arrivingQueue;
         this.passedQueue = passedQueue;
         this.road = road;
+        this.clock = clock;
     }
 
     @Override
@@ -49,6 +54,7 @@ public class PassRoad extends Thread {
                 if (entry != null && System.currentTimeMillis() >= entry.getKey()) {
                     vehicleQueue.remove();
                     Vehicle v = entry.getValue();
+                    Sender.sendToEventHandler(new VehicleEvent(EventType.VEHICLE_SIGNAL_ARRIVAL, v, road.getDestination(), clock.tick()));
                     passedQueue.add(v);
                 } else {
                     Thread.sleep(50);
