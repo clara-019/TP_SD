@@ -30,6 +30,8 @@ public class DashboardRenderer extends JPanel {
     // precomputed road geometries used both to draw static roads and to place
     // lights
     private final Map<RoadEnum, RoadGeom> roadGeom = new EnumMap<>(RoadEnum.class);
+    // latest semaphore rectangles for click detection
+    private final Map<RoadEnum, Rectangle> signalRects = new EnumMap<>(RoadEnum.class);
 
     // commonly reused objects to avoid reallocation
     private static final Stroke ROAD_STROKE = new BasicStroke(8, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
@@ -37,9 +39,11 @@ public class DashboardRenderer extends JPanel {
             new float[] { 8f, 12f }, 0f);
     private static final Color ROAD_COLOR = new Color(56, 56, 56);
 
-    public DashboardRenderer(Map<NodeEnum, Point> nodePositions,
+        public DashboardRenderer(Map<NodeEnum, Point> nodePositions,
             Map<String, VehicleSprite> sprites,
-            Map<RoadEnum, String> trafficLights) {
+            Map<RoadEnum, String> trafficLights,
+            Map<RoadEnum, java.util.Deque<VehicleSprite>> signalQueues,
+            Map<RoadEnum, Launcher.QueueStats> queueStats) {
         this.nodePositions = nodePositions;
         this.sprites = sprites;
         this.trafficLights = trafficLights;
@@ -51,6 +55,28 @@ public class DashboardRenderer extends JPanel {
             @Override
             public void componentResized(ComponentEvent e) {
                 markMapDirty();
+            }
+        });
+
+        // mouse click on semaphore -> show queue stats
+        addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                Point p = e.getPoint();
+                for (Map.Entry<RoadEnum, Rectangle> en : signalRects.entrySet()) {
+                    if (en.getValue() != null && en.getValue().contains(p)) {
+                        RoadEnum road = en.getKey();
+                        java.util.Deque<VehicleSprite> q = (signalQueues == null) ? null : signalQueues.get(road);
+                        Launcher.QueueStats st = (queueStats == null) ? null : queueStats.get(road);
+                        int current = (q == null) ? 0 : q.size();
+                        int max = (st == null) ? 0 : st.getMax();
+                        double avg = (st == null) ? 0.0 : st.getAverage();
+                        String msg = String.format("Road: %s\nCurrent queue: %d\nMax queue: %d\nAverage size: %.2f\nSamples: %d",
+                                road.name(), current, max, avg, (st == null ? 0L : st.getSamples()));
+                        javax.swing.JOptionPane.showMessageDialog(DashboardRenderer.this, msg, "Queue stats", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                        break;
+                    }
+                }
             }
         });
     }
@@ -363,10 +389,12 @@ public class DashboardRenderer extends JPanel {
 
     // ---------- DYNAMIC TRAFFIC LIGHTS OVERLAY ----------
     private void drawTrafficLightsOverlay(Graphics2D g2) {
-        // Draw lights using the precomputed roadGeom positions for consistent placement
-        for (Map.Entry<RoadEnum, RoadGeom> entry : roadGeom.entrySet()) {
-            RoadEnum road = entry.getKey();
-            RoadGeom rg = entry.getValue();
+        // Draw lights only for roads that have configured traffic lights
+        // refresh click-rects
+        signalRects.clear();
+        for (RoadEnum road : trafficLights.keySet()) {
+            RoadGeom rg = roadGeom.get(road);
+            if (rg == null) continue;
 
             // compute intersection point with destination node box (approx)
             double hw = 44.0, hh = 28.0;
@@ -381,6 +409,9 @@ public class DashboardRenderer extends JPanel {
             int w = 14, h = 28;
             int ix = (int) Math.round(bx - w / 2.0);
             int iy = (int) Math.round(by - h / 2.0);
+
+            // record rectangle for click detection
+            signalRects.put(road, new Rectangle(ix, iy, w, h));
 
             // housing
             g2.setColor(new Color(40, 40, 40));

@@ -8,6 +8,7 @@ import Node.NodeEnum;
 import Node.NodeType;
 import Node.RoadEnum;
 import Vehicle.Vehicle;
+import Vehicle.VehicleTypes;
 import java.awt.*;
 import java.util.*;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -34,6 +35,8 @@ public class Dashboard extends JFrame {
     private final Map<String, VehicleSprite> sprites = new HashMap<>();
     private final Map<NodeEnum, Point> nodePositions = new HashMap<>();
     private final Map<RoadEnum, String> trafficLights = new HashMap<>();
+    private final Map<RoadEnum, Deque<VehicleSprite>> signalQueues = new EnumMap<>(RoadEnum.class);
+    private final Map<RoadEnum, QueueStats> queueStats = new EnumMap<>(RoadEnum.class);
 
     private JTextArea logArea;
     private JLabel statusLabel;
@@ -41,12 +44,17 @@ public class Dashboard extends JFrame {
     private JLabel statsCreatedLabel;
     private JLabel statsExitedLabel;
     private JLabel statsAvgTimeLabel;
+    private JLabel statsCreatedByTypeLabel;
+    private JLabel statsActiveByTypeLabel;
+    private JLabel statsExitedByTypeLabel;
 
     private int totalCreated = 0;
     private int totalExited = 0;
     private long totalTravelTimeMs = 0L;
     private int completedTrips = 0;
     private final Map<String, Long> departTimestamps = new HashMap<>();
+    private final Map<VehicleTypes, Integer> createdByType = new EnumMap<>(VehicleTypes.class);
+    private final Map<VehicleTypes, Integer> exitedByType = new EnumMap<>(VehicleTypes.class);
 
     private DashboardRenderer renderer;
 
@@ -58,7 +66,7 @@ public class Dashboard extends JFrame {
 
         initNodes();
 
-        renderer = new DashboardRenderer(nodePositions, sprites, trafficLights);
+        renderer = new DashboardRenderer(nodePositions, sprites, trafficLights, signalQueues, queueStats);
         add(renderer, BorderLayout.CENTER);
 
         JPanel top = new JPanel(new BorderLayout());
@@ -120,10 +128,19 @@ public class Dashboard extends JFrame {
         statsExitedLabel = new JLabel("Exited: 0");
         statsAvgTimeLabel = new JLabel("Avg trip (s): 0.0");
 
+        statsCreatedByTypeLabel = new JLabel("Created by type: ");
+        statsActiveByTypeLabel = new JLabel("Active by type: ");
+        statsExitedByTypeLabel = new JLabel("Exited by type: ");
+
         statsPanel.add(statsCreatedLabel);
         statsPanel.add(statsActiveLabel);
         statsPanel.add(statsExitedLabel);
         statsPanel.add(statsAvgTimeLabel);
+        statsPanel.add(Box.createVerticalStrut(6));
+        statsPanel.add(statsCreatedByTypeLabel);
+        statsPanel.add(statsActiveByTypeLabel);
+        statsPanel.add(statsExitedByTypeLabel);
+        // (crossroad stats area removed)
 
         add(statsPanel, BorderLayout.EAST);
     }
@@ -202,9 +219,22 @@ public class Dashboard extends JFrame {
     nodePositions.putAll(grid);
 
     trafficLights.clear();
+    signalQueues.clear();
+    queueStats.clear();
+    // initialize per-type counters
+    createdByType.clear();
+    exitedByType.clear();
+    for (VehicleTypes vt : VehicleTypes.values()) {
+        createdByType.put(vt, 0);
+        exitedByType.put(vt, 0);
+    }
+    // initialize per-crossroad counters
+    // (per-crossroad counters removed)
     for (RoadEnum r : RoadEnum.values()) {
         if (r.getDestination().getType() == NodeType.CROSSROAD) {
             trafficLights.put(r, "RED");
+            signalQueues.put(r, new ArrayDeque<>());
+            queueStats.put(r, new QueueStats());
         }
     }
 }
@@ -330,6 +360,8 @@ public class Dashboard extends JFrame {
                 }
                 synchronized (this) {
                     totalCreated++;
+                    VehicleTypes vt = v.getType();
+                    if (vt != null) createdByType.put(vt, createdByType.getOrDefault(vt, 0) + 1);
                 }
                 updateStatsLabelsAsync();
                 break;
@@ -339,6 +371,21 @@ public class Dashboard extends JFrame {
                 handleDeparture(ve, v);
                 synchronized (departTimestamps) {
                     departTimestamps.put(id, System.currentTimeMillis());
+                }
+                // remove sprite from visual queue for the incoming road (vehicle leaving intersection)
+                NodeEnum incomingPrev = findPreviousNode(v, ve.getNode());
+                if (incomingPrev != null) {
+                    RoadEnum incomingRoad = RoadEnum.toRoadEnum(incomingPrev.toString() + "_" + ve.getNode().toString());
+                    if (incomingRoad != null) {
+                        Deque<VehicleSprite> q = signalQueues.get(incomingRoad);
+                        QueueStats st = queueStats.get(incomingRoad);
+                        if (q != null) {
+                            synchronized (q) {
+                                q.removeIf(sp -> sp.id.equals(id));
+                                if (st != null) st.recordSample(q.size());
+                            }
+                        }
+                    }
                 }
                 updateStatsLabelsAsync();
                 break;
@@ -408,6 +455,27 @@ public class Dashboard extends JFrame {
                     updateStatsLabelsAsync();
                 }
 
+                // add sprite to visual queue for the incoming road
+                NodeEnum prevNode = findPreviousNode(v, ve.getNode());
+                if (prevNode != null) {
+                    RoadEnum incoming = RoadEnum.toRoadEnum(prevNode.toString() + "_" + ve.getNode().toString());
+                    if (incoming != null) {
+                        Deque<VehicleSprite> q = signalQueues.get(incoming);
+                        QueueStats st = queueStats.get(incoming);
+                        if (q != null) {
+                            synchronized (q) {
+                                VehicleSprite sprite = sprites.get(id);
+                                if (sprite != null && q.stream().noneMatch(sp -> sp.id.equals(id))) {
+                                    q.addLast(sprite);
+                                }
+                                if (st != null) st.recordSample(q.size());
+                            }
+                        }
+                    }
+                }
+
+                // (per-crossroad counting removed)
+
                 break;
             }
 
@@ -420,9 +488,22 @@ public class Dashboard extends JFrame {
                 }
                 synchronized (this) {
                     totalExited++;
+                    VehicleTypes vt = v.getType();
+                    if (vt != null) exitedByType.put(vt, exitedByType.getOrDefault(vt, 0) + 1);
                 }
                 synchronized (departTimestamps) {
                     departTimestamps.remove(id);
+                }
+                // ensure vehicle removed from any semaphore queues and update stats
+                for (Map.Entry<RoadEnum, Deque<VehicleSprite>> e : signalQueues.entrySet()) {
+                    Deque<VehicleSprite> q = e.getValue();
+                    QueueStats st = queueStats.get(e.getKey());
+                    if (q != null) {
+                        synchronized (q) {
+                            q.removeIf(sp -> sp.id.equals(id));
+                            if (st != null) st.recordSample(q.size());
+                        }
+                    }
                 }
                 updateStatsLabelsAsync();
                 break;
@@ -462,6 +543,39 @@ public class Dashboard extends JFrame {
         if (statsCreatedLabel != null) statsCreatedLabel.setText("Created: " + created);
         if (statsExitedLabel != null) statsExitedLabel.setText("Exited: " + exited);
         if (statsAvgTimeLabel != null) statsAvgTimeLabel.setText(String.format("Avg trip (s): %.2f", avgSec));
+
+        // per-type stats
+        StringBuilder createdBy = new StringBuilder();
+        StringBuilder activeBy = new StringBuilder();
+        StringBuilder exitedBy = new StringBuilder();
+
+        // created and exited come from maps; active derived from sprites
+        for (VehicleTypes vt : VehicleTypes.values()) {
+            int c = createdByType.getOrDefault(vt, 0);
+            int x = exitedByType.getOrDefault(vt, 0);
+            createdBy.append(vt.getTypeToString()).append("=").append(c).append(" ");
+            exitedBy.append(vt.getTypeToString()).append("=").append(x).append(" ");
+        }
+
+        // compute active per type
+        Map<VehicleTypes, Integer> activeMap = new EnumMap<>(VehicleTypes.class);
+        synchronized (sprites) {
+            for (VehicleSprite vs : sprites.values()) {
+                VehicleTypes vt = vs.vehicle == null ? null : vs.vehicle.getType();
+                if (vt == null) continue;
+                activeMap.put(vt, activeMap.getOrDefault(vt, 0) + 1);
+            }
+        }
+        for (VehicleTypes vt : VehicleTypes.values()) {
+            int a = activeMap.getOrDefault(vt, 0);
+            activeBy.append(vt.getTypeToString()).append("=").append(a).append(" ");
+        }
+
+        if (statsCreatedByTypeLabel != null) statsCreatedByTypeLabel.setText("Created by type: " + createdBy.toString().trim());
+        if (statsActiveByTypeLabel != null) statsActiveByTypeLabel.setText("Active by type: " + activeBy.toString().trim());
+        if (statsExitedByTypeLabel != null) statsExitedByTypeLabel.setText("Exited by type: " + exitedBy.toString().trim());
+
+        // (per-crossroad stats removed)
     }
 
     private void handleDeparture(VehicleEvent ve, Vehicle v) {
