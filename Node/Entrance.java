@@ -10,7 +10,7 @@ import Vehicle.*;
 
 public class Entrance {
 
-    private static final double lambda = 0.2;
+    private static final double LAMBDA = 0.2;
 
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -66,7 +66,7 @@ public class Entrance {
             Sender.sendToEventHandler(new VehicleEvent(EventType.NEW_VEHICLE, v, entrance, clock.tick()));
             Sender.sendVehicleDeparture(v, destPort, entrance, clock);
 
-            long sleepTime = getExponentialInterval(lambda, rnd);
+            long sleepTime = getExponentialInterval(LAMBDA, rnd);
 
             try {
                 Thread.sleep(sleepTime);
