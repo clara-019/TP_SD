@@ -1,6 +1,8 @@
-package Node;
+package Traffic;
 
 import java.util.*;
+
+import Node.NodeEnum;
 
 /**
  * Enumeração que representa todas as estradas disponíveis no sistema

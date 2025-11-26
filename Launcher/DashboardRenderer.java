@@ -2,7 +2,7 @@ package Launcher;
 
 import Node.NodeEnum;
 import Node.NodeType;
-import Node.RoadEnum;
+import Traffic.RoadEnum;
 
 import javax.swing.*;
 import java.awt.*;

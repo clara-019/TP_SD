@@ -3,6 +3,11 @@ package Node;
 import java.util.*;
 
 import Comunication.*;
+import Traffic.PassRoad;
+import Traffic.PedestrianLight;
+import Traffic.RoadEnum;
+import Traffic.TrafficLight;
+import Traffic.TrafficSorter;
 import Utils.LogicalClock;
 import Utils.RoundRobin;
 import Utils.SynchronizedQueue;

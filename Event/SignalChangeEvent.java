@@ -1,7 +1,7 @@
 package Event;
 
 import Node.NodeEnum;
-import Node.RoadEnum;
+import Traffic.RoadEnum;
 
 public class SignalChangeEvent extends Event {
     private static final long serialVersionUID = 1L;

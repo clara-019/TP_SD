@@ -6,6 +6,9 @@ import java.util.Map;
 
 import Comunication.*;
 import Event.*;
+import Traffic.PassRoad;
+import Traffic.RoadEnum;
+import Traffic.TrafficSorter;
 import Utils.*;
 import Vehicle.Vehicle;
 

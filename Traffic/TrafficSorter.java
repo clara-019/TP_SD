@@ -1,9 +1,11 @@
-package Node;
+package Traffic;
 
 import Utils.SynchronizedQueue;
 import Vehicle.*;
 
 import java.util.*;
+
+import Node.NodeEnum;
 
 public class TrafficSorter extends Thread {
     private Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues;

@@ -1,4 +1,4 @@
-package Node;
+package Traffic;
 
 import java.util.AbstractMap.SimpleEntry;
 

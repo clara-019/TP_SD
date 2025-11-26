@@ -1,9 +1,10 @@
-package Node;
+package Traffic;
 
 import java.util.List;
 
 import Comunication.Sender;
 import Event.SignalChangeEvent;
+import Node.NodeEnum;
 import Utils.LogicalClock;
 import Utils.RoundRobin;
 import Utils.SynchronizedQueue;

@@ -6,7 +6,7 @@ import Event.SignalChangeEvent;
 import Event.VehicleEvent;
 import Node.NodeEnum;
 import Node.NodeType;
-import Node.RoadEnum;
+import Traffic.RoadEnum;
 import Vehicle.Vehicle;
 import Vehicle.VehicleTypes;
 import java.awt.*;

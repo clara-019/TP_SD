@@ -5,11 +5,11 @@ import java.util.Random;
 
 import Comunication.*;
 import Event.*;
+import Traffic.RoadEnum;
 import Utils.*;
 import Vehicle.*;
 
 public class Entrance {
-
     private static final double LAMBDA = 0.2;
 
     public static void main(String[] args) {
