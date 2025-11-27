@@ -55,12 +55,10 @@ public class Simulator {
 
         try {
             System.out.println("Waiting for component initialization...");
-            Thread.sleep(3000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-        System.out.println("Entrances and crossroads will run as separate processes and generate/forward vehicles.");
 
         System.out.println("Simulation fully initialized!");
         System.out.println("=====================================");
@@ -124,8 +122,6 @@ public class Simulator {
                     processes.remove(n);
                     continue;
                 }
-
-                System.out.println("Attempting graceful destroy() for " + n + " (pid=" + safePid(p) + ")");
                 p.destroy();
 
                 if (!p.waitFor(1, TimeUnit.SECONDS)) {
@@ -173,7 +169,6 @@ public class Simulator {
                         processes.remove(n);
                         continue;
                     }
-                    System.out.println("Stopping entrance " + n + " (pid=" + safePid(p) + ") via destroy()");
                     p.destroy();
                     if (!p.waitFor(1, TimeUnit.SECONDS)) {
                         System.out.println("Entrance " + n + " did not exit, forcing destroyForcibly()");
@@ -190,11 +185,6 @@ public class Simulator {
             }
         }
     }
-
-    private long safePid(Process p) {
-        try { return p.pid(); } catch (Throwable t) { return -1; }
-    }
-
 
     public boolean isRunning() {
         return running;

@@ -2,6 +2,8 @@ package Vehicle;
 
 import java.io.Serializable;
 
+import Node.NodeEnum;
+
 public class Vehicle implements Serializable {
     private static final long serialVersionUID = 1L;
     private String id;
@@ -44,4 +46,21 @@ public class Vehicle implements Serializable {
         return path;
     }
 
+    public NodeEnum findNextNode(NodeEnum current) {
+        java.util.List<NodeEnum> list = this.path.getPath();
+        for (int i = 0; i < list.size() - 1; i++)
+            if (list.get(i) == current)
+                return list.get(i + 1);
+
+        return null;
+    }
+
+    public NodeEnum findPreviousNode(NodeEnum current) {
+        java.util.List<NodeEnum> list = this.path.getPath();
+        for (int i = 1; i < list.size(); i++)
+            if (list.get(i) == current)
+                return list.get(i - 1);
+
+        return null;
+    }
 }

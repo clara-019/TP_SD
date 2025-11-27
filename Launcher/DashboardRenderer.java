@@ -11,46 +11,33 @@ import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.util.*;
 
-/**
- * Versão otimizada do DashboardRenderer.
- * - Cache do mapa "estático" (background + roads + nodes) em BufferedImage
- * - Recalculo de posições apenas em resize do painel (ComponentListener)
- * - Pré-cálculo de geometrias das roads para reduzir Math/alloc em paint
- * - Desenha semáforos dinamicamente (são voláteis) e sprites por cima
- */
 public class DashboardRenderer extends JPanel {
     private final Map<NodeEnum, Point> nodePositions;
     private final Map<String, VehicleSprite> sprites;
     private final Map<RoadEnum, String> trafficLights;
 
-    // cached static map (background, grid cells, roads, nodes, legend)
     private BufferedImage staticMapCache;
     private Dimension lastSize = new Dimension(0, 0);
 
-    // precomputed road geometries used both to draw static roads and to place
-    // lights
     private final Map<RoadEnum, RoadGeom> roadGeom = new EnumMap<>(RoadEnum.class);
-    // latest semaphore rectangles for click detection
+
     private final Map<RoadEnum, Rectangle> signalRects = new EnumMap<>(RoadEnum.class);
 
-    // commonly reused objects to avoid reallocation
     private static final Stroke ROAD_STROKE = new BasicStroke(8, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
     private static final Stroke DASHED = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
             new float[] { 8f, 12f }, 0f);
     private static final Color ROAD_COLOR = new Color(56, 56, 56);
 
-        public DashboardRenderer(Map<NodeEnum, Point> nodePositions,
-            Map<String, VehicleSprite> sprites,
-            Map<RoadEnum, String> trafficLights,
-            Map<RoadEnum, java.util.Deque<VehicleSprite>> signalQueues,
-            Map<RoadEnum, Launcher.QueueStats> queueStats) {
-        this.nodePositions = nodePositions;
-        this.sprites = sprites;
-        this.trafficLights = trafficLights;
+    public DashboardRenderer(DashboardModel model) {
+        this.nodePositions = model.getNodePositions();
+        this.sprites = model.getSprites();
+        this.trafficLights = model.getTrafficLights();
+        Map<RoadEnum, java.util.Deque<VehicleSprite>> signalQueues = model.getSignalQueues();
+        Map<RoadEnum, QueueStats> queueStats = model.getQueueStats();
+
         setBackground(Color.WHITE);
         setDoubleBuffered(true);
 
-        // recompute only when resized — keeps paintComponent cheap
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -58,23 +45,33 @@ public class DashboardRenderer extends JPanel {
             }
         });
 
-        // mouse click on semaphore -> show queue stats
         addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 Point p = e.getPoint();
-                for (Map.Entry<RoadEnum, Rectangle> en : signalRects.entrySet()) {
-                    if (en.getValue() != null && en.getValue().contains(p)) {
-                        RoadEnum road = en.getKey();
-                        java.util.Deque<VehicleSprite> q = (signalQueues == null) ? null : signalQueues.get(road);
-                        Launcher.QueueStats st = (queueStats == null) ? null : queueStats.get(road);
-                        int current = (q == null) ? 0 : q.size();
-                        int max = (st == null) ? 0 : st.getMax();
-                        double avg = (st == null) ? 0.0 : st.getAverage();
-                        String msg = String.format("Road: %s\nCurrent queue: %d\nMax queue: %d\nAverage size: %.2f\nSamples: %d",
-                                road.name(), current, max, avg, (st == null ? 0L : st.getSamples()));
-                        javax.swing.JOptionPane.showMessageDialog(DashboardRenderer.this, msg, "Queue stats", javax.swing.JOptionPane.INFORMATION_MESSAGE);
-                        break;
+                synchronized (trafficLights) {
+                    for (Map.Entry<RoadEnum, Rectangle> en : signalRects.entrySet()) {
+                        if (en.getValue() != null && en.getValue().contains(p)) {
+                            RoadEnum road = en.getKey();
+                            java.util.Deque<VehicleSprite> q = (signalQueues == null) ? null : signalQueues.get(road);
+                            QueueStats st = (queueStats == null) ? null : queueStats.get(road);
+
+                            int current = 0;
+                            if (q != null) {
+                                synchronized (q) {
+                                    current = q.size();
+                                }
+                            }
+                            int max = (st == null) ? 0 : st.getMax();
+                            double avg = (st == null) ? 0.0 : st.getAverage();
+                            long samples = (st == null) ? 0L : st.getSamples();
+                            String msg = String.format(
+                                    "Road: %s\nCurrent queue: %d\nMax queue: %d\nAverage size: %.2f\nSamples: %d",
+                                    road.name(), current, max, avg, samples);
+                            javax.swing.JOptionPane.showMessageDialog(DashboardRenderer.this, msg, "Queue stats",
+                                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                            break;
+                        }
                     }
                 }
             }
@@ -83,7 +80,7 @@ public class DashboardRenderer extends JPanel {
 
     private void markMapDirty() {
         synchronized (this) {
-            staticMapCache = null; // lazy rebuild on next paint
+            staticMapCache = null;
         }
     }
 
@@ -94,7 +91,6 @@ public class DashboardRenderer extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         Dimension size = getSize();
-        // If panel size changed (or cache missing) rebuild static map
         if (staticMapCache == null || !size.equals(lastSize)) {
             synchronized (this) {
                 lastSize = new Dimension(size);
@@ -103,16 +99,13 @@ public class DashboardRenderer extends JPanel {
             }
         }
 
-        // draw cached static map
         synchronized (this) {
             if (staticMapCache != null)
                 g2.drawImage(staticMapCache, 0, 0, null);
         }
 
-        // draw dynamic parts: traffic lights (they change frequently)
         drawTrafficLightsOverlay(g2);
 
-        // draw vehicles on top
         synchronized (sprites) {
             for (VehicleSprite vs : sprites.values())
                 vs.draw(g2);
@@ -121,7 +114,6 @@ public class DashboardRenderer extends JPanel {
         g2.dispose();
     }
 
-    // ---------- STATIC MAP BUILD ----------
     private void buildStaticMap(int w, int h) {
         if (w <= 0 || h <= 0)
             return;
@@ -129,33 +121,25 @@ public class DashboardRenderer extends JPanel {
         Graphics2D g2 = img.createGraphics();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // background gradient
         GradientPaint gp = new GradientPaint(0, 0, new Color(245, 247, 250), 0, h, new Color(225, 230, 235));
         g2.setPaint(gp);
         g2.fillRect(0, 0, w, h);
 
-        // draw grid cells lightly (uses nodePositions)
         drawGridCells(g2);
 
-        // compute road geometries once
         computeRoadGeometries();
 
-        // draw roads and arrows (static parts)
         drawRoadsStatic(g2);
 
-        // draw nodes (entrances, crossroads, exits)
         drawNodes(g2);
 
-        // legend (static)
         drawLegend(g2);
 
         g2.dispose();
         staticMapCache = img;
     }
 
-    // recompute nodePositions only when needed (on resize)
     private void recomputeNodePositionsIfNeeded(int panelW, int panelH) {
-        // Similar logic to original but only executed on resize
         int w = Math.max(600, panelW);
         int h = Math.max(400, panelH);
 
@@ -184,11 +168,9 @@ public class DashboardRenderer extends JPanel {
         }
     }
 
-    // ---------- ROAD GEOMETRY CACHE ----------
     private void computeRoadGeometries() {
         roadGeom.clear();
 
-        // Build a map of undirected pairs to lists (like original) but cached
         Map<String, java.util.List<RoadEnum>> forwardMap = new HashMap<>();
         Map<String, java.util.List<RoadEnum>> backwardMap = new HashMap<>();
 
@@ -237,18 +219,17 @@ public class DashboardRenderer extends JPanel {
             java.util.List<RoadEnum> fwd = forwardMap.getOrDefault(key, Collections.emptyList());
             java.util.List<RoadEnum> bwd = backwardMap.getOrDefault(key, Collections.emptyList());
 
-            // forward lanes
             for (int i = 0; i < fwd.size(); i++) {
                 RoadEnum r = fwd.get(i);
                 double offset = sideSpacing + (i - (fwd.size() - 1) / 2.0) * intraSpacing;
-                RoadGeom g = new RoadGeom(p1, p2, ux, uy, px, py, offset);
+                RoadGeom g = new RoadGeom(p1, p2, px, py, offset);
                 roadGeom.put(r, g);
             }
-            // backward lanes
+
             for (int i = 0; i < bwd.size(); i++) {
                 RoadEnum r = bwd.get(i);
                 double offset = -sideSpacing + (i - (bwd.size() - 1) / 2.0) * intraSpacing;
-                RoadGeom g = new RoadGeom(p2, p1, ux, uy, px, py, offset);
+                RoadGeom g = new RoadGeom(p2, p1, px, py, offset);
                 roadGeom.put(r, g);
             }
         }
@@ -256,14 +237,12 @@ public class DashboardRenderer extends JPanel {
 
     private static final class RoadGeom {
         final Point from, to;
-        final double ux, uy, px, py;
+        final double px, py;
         final double offset;
 
-        RoadGeom(Point from, Point to, double ux, double uy, double px, double py, double offset) {
+        RoadGeom(Point from, Point to, double px, double py, double offset) {
             this.from = from;
             this.to = to;
-            this.ux = ux;
-            this.uy = uy;
             this.px = px;
             this.py = py;
             this.offset = offset;
@@ -286,11 +265,10 @@ public class DashboardRenderer extends JPanel {
         }
     }
 
-    // draw roads static part (bodies and dashed center)
     private void drawRoadsStatic(Graphics2D g2) {
         g2.setStroke(ROAD_STROKE);
         g2.setColor(ROAD_COLOR);
-        // draw road bodies
+
         for (RoadGeom rg : roadGeom.values()) {
             int sx1 = rg.sx1();
             int sy1 = rg.sy1();
@@ -299,7 +277,6 @@ public class DashboardRenderer extends JPanel {
             g2.drawLine(sx1, sy1, sx2, sy2);
         }
 
-        // dashed centers
         Stroke prev = g2.getStroke();
         g2.setStroke(DASHED);
         g2.setColor(new Color(230, 230, 230, 160));
@@ -312,7 +289,6 @@ public class DashboardRenderer extends JPanel {
         }
         g2.setStroke(prev);
 
-        // arrows (lightweight) — draw small triangles at end of each road
         for (RoadGeom rg : roadGeom.values()) {
             drawArrowStatic(g2, rg);
         }
@@ -374,7 +350,6 @@ public class DashboardRenderer extends JPanel {
                     g2.drawRect(p.x - boxW / 2, p.y - boxH / 2, boxW, boxH);
                 }
 
-                // node label
                 g2.setColor(Color.BLACK);
                 Font orig = g2.getFont();
                 Font f = orig.deriveFont(Font.BOLD, 12f);
@@ -387,33 +362,31 @@ public class DashboardRenderer extends JPanel {
         }
     }
 
-    // ---------- DYNAMIC TRAFFIC LIGHTS OVERLAY ----------
     private void drawTrafficLightsOverlay(Graphics2D g2) {
-        // Draw lights only for roads that have configured traffic lights
-        // refresh click-rects
         signalRects.clear();
         for (RoadEnum road : trafficLights.keySet()) {
             RoadGeom rg = roadGeom.get(road);
-            if (rg == null) continue;
+            if (rg == null)
+                continue;
 
-            // compute intersection point with destination node box (approx)
-            double hw = 44.0, hh = 28.0;
-            double ux = rg.ux, uy = rg.uy, px = rg.px, py = rg.py;
-            Point dest = rg.to;
-            double tx = (Math.abs(ux) < 1e-6) ? Double.POSITIVE_INFINITY : (hw / Math.abs(ux));
-            double ty = (Math.abs(uy) < 1e-6) ? Double.POSITIVE_INFINITY : (hh / Math.abs(uy));
-            double t = Math.min(tx, ty);
-            double bx = dest.x - ux * t + px * rg.offset;
-            double by = dest.y - uy * t + py * rg.offset;
+                int laneEndX = rg.sx2();
+                int laneEndY = rg.sy2();
+                double laneDx = rg.to.x - rg.from.x;
+                double laneDy = rg.to.y - rg.from.y;
+                double laneLen = Math.hypot(laneDx, laneDy);
+                if (laneLen == 0) laneLen = 1;
+                double laneUx = laneDx / laneLen;
+                double laneUy = laneDy / laneLen;
+                double margin = Config.LIGHT_BACKOFF;
+                double bx = laneEndX - laneUx * margin;
+                double by = laneEndY - laneUy * margin;
 
             int w = 14, h = 28;
             int ix = (int) Math.round(bx - w / 2.0);
             int iy = (int) Math.round(by - h / 2.0);
 
-            // record rectangle for click detection
             signalRects.put(road, new Rectangle(ix, iy, w, h));
 
-            // housing
             g2.setColor(new Color(40, 40, 40));
             g2.fillRoundRect(ix, iy, w, h, 4, 4);
             g2.setColor(new Color(30, 30, 30));
@@ -432,7 +405,6 @@ public class DashboardRenderer extends JPanel {
             g2.setColor(isRed ? greenOff : greenOn);
             g2.fillOval(ix + 2, iy + 14, 10, 10);
 
-            // small label
             Font origLabelFont = g2.getFont();
             Font labelFont = origLabelFont.deriveFont(Font.BOLD, 12f);
             g2.setFont(labelFont);
