@@ -12,6 +12,10 @@ import java.awt.image.BufferedImage;
 import java.util.*;
 
 public class DashboardRenderer extends JPanel {
+
+    private static final int NODE_W = 80;
+    private static final int NODE_H = 80;
+
     private final Map<NodeEnum, Point> nodePositions;
     private final Map<String, VehicleSprite> sprites;
     private final Map<RoadEnum, String> trafficLights;
@@ -20,20 +24,15 @@ public class DashboardRenderer extends JPanel {
     private Dimension lastSize = new Dimension(0, 0);
 
     private final Map<RoadEnum, RoadGeom> roadGeom = new EnumMap<>(RoadEnum.class);
-
     private final Map<RoadEnum, Rectangle> signalRects = new EnumMap<>(RoadEnum.class);
 
-    private static final Stroke ROAD_STROKE = new BasicStroke(8, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
-    private static final Stroke DASHED = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
-            new float[] { 8f, 12f }, 0f);
+    private static final Stroke ROAD_STROKE = new BasicStroke(6, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
     private static final Color ROAD_COLOR = new Color(56, 56, 56);
 
     public DashboardRenderer(DashboardModel model) {
         this.nodePositions = model.getNodePositions();
         this.sprites = model.getSprites();
         this.trafficLights = model.getTrafficLights();
-        Map<RoadEnum, java.util.Deque<VehicleSprite>> signalQueues = model.getSignalQueues();
-        Map<RoadEnum, QueueStats> queueStats = model.getQueueStats();
 
         setBackground(Color.WHITE);
         setDoubleBuffered(true);
@@ -49,29 +48,26 @@ public class DashboardRenderer extends JPanel {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 Point p = e.getPoint();
-                synchronized (trafficLights) {
-                    for (Map.Entry<RoadEnum, Rectangle> en : signalRects.entrySet()) {
-                        if (en.getValue() != null && en.getValue().contains(p)) {
-                            RoadEnum road = en.getKey();
-                            java.util.Deque<VehicleSprite> q = (signalQueues == null) ? null : signalQueues.get(road);
-                            QueueStats st = (queueStats == null) ? null : queueStats.get(road);
+                for (Map.Entry<RoadEnum, Rectangle> en : signalRects.entrySet()) {
+                    Rectangle rect = en.getValue();
+                    if (rect != null && rect.contains(p)) {
+                        RoadEnum road = en.getKey();
+                        java.util.Deque<VehicleSprite> q = model.getSignalQueues().get(road);
+                        QueueStats st = model.getQueueStats().get(road);
 
-                            int current = 0;
-                            if (q != null) {
-                                synchronized (q) {
-                                    current = q.size();
-                                }
-                            }
-                            int max = (st == null) ? 0 : st.getMax();
-                            double avg = (st == null) ? 0.0 : st.getAverage();
-                            long samples = (st == null) ? 0L : st.getSamples();
-                            String msg = String.format(
-                                    "Road: %s\nCurrent queue: %d\nMax queue: %d\nAverage size: %.2f\nSamples: %d",
-                                    road.name(), current, max, avg, samples);
-                            javax.swing.JOptionPane.showMessageDialog(DashboardRenderer.this, msg, "Queue stats",
-                                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
-                            break;
+                        int current = 0;
+                        if (q != null) {
+                            synchronized (q) { current = q.size(); }
                         }
+                        int max = (st == null) ? 0 : st.getMax();
+                        double avg = (st == null) ? 0.0 : st.getAverage();
+                        long samples = (st == null) ? 0L : st.getSamples();
+                        String msg = String.format(
+                                "Road: %s\nCurrent queue: %d\nMax queue: %d\nAverage size: %.2f\nSamples: %d",
+                                road.name(), current, max, avg, samples);
+                        JOptionPane.showMessageDialog(DashboardRenderer.this, msg, "Queue stats",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        break;
                     }
                 }
             }
@@ -94,7 +90,7 @@ public class DashboardRenderer extends JPanel {
         if (staticMapCache == null || !size.equals(lastSize)) {
             synchronized (this) {
                 lastSize = new Dimension(size);
-                recomputeNodePositionsIfNeeded(size.width, size.height);
+                recomputeNodePositions(size.width, size.height);
                 buildStaticMap(size.width, size.height);
             }
         }
@@ -117,29 +113,23 @@ public class DashboardRenderer extends JPanel {
     private void buildStaticMap(int w, int h) {
         if (w <= 0 || h <= 0)
             return;
+
         BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = img.createGraphics();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        GradientPaint gp = new GradientPaint(0, 0, new Color(245, 247, 250), 0, h, new Color(225, 230, 235));
-        g2.setPaint(gp);
+        g2.setColor(Color.WHITE);
         g2.fillRect(0, 0, w, h);
 
-        drawGridCells(g2);
-
         computeRoadGeometries();
-
         drawRoadsStatic(g2);
-
         drawNodes(g2);
-
-        drawLegend(g2);
 
         g2.dispose();
         staticMapCache = img;
     }
 
-    private void recomputeNodePositionsIfNeeded(int panelW, int panelH) {
+    private void recomputeNodePositions(int panelW, int panelH) {
         int w = Math.max(600, panelW);
         int h = Math.max(400, panelH);
 
@@ -171,97 +161,49 @@ public class DashboardRenderer extends JPanel {
     private void computeRoadGeometries() {
         roadGeom.clear();
 
-        Map<String, java.util.List<RoadEnum>> forwardMap = new HashMap<>();
-        Map<String, java.util.List<RoadEnum>> backwardMap = new HashMap<>();
-
         for (RoadEnum r : RoadEnum.values()) {
-            String a = r.getOrigin().name();
-            String b = r.getDestination().name();
-            String key = a.compareTo(b) <= 0 ? a + "|" + b : b + "|" + a;
-            String first = a.compareTo(b) <= 0 ? a : b;
-            if (r.getOrigin().name().equals(first))
-                forwardMap.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
-            else
-                backwardMap.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
-        }
-
-        double sideSpacing = 18.0;
-        double intraSpacing = 14.0;
-
-        Set<String> keys = new HashSet<>();
-        keys.addAll(forwardMap.keySet());
-        keys.addAll(backwardMap.keySet());
-
-        for (String key : keys) {
-            String[] parts = key.split("\\|");
-            if (parts.length != 2)
-                continue;
-            NodeEnum n1 = NodeEnum.valueOf(parts[0]);
-            NodeEnum n2 = NodeEnum.valueOf(parts[1]);
             Point p1, p2;
             synchronized (nodePositions) {
-                p1 = nodePositions.get(n1);
-                p2 = nodePositions.get(n2);
+                p1 = nodePositions.get(r.getOrigin());
+                p2 = nodePositions.get(r.getDestination());
             }
             if (p1 == null || p2 == null)
                 continue;
 
-            double dx = p2.x - p1.x;
-            double dy = p2.y - p1.y;
-            double len = Math.hypot(dx, dy);
-            if (len == 0)
-                len = 1;
-            double ux = dx / len;
-            double uy = dy / len;
-            double px = -uy;
-            double py = ux;
+            Point adj1 = projectToNodeBorder(p1, p2, NODE_W, NODE_H);
+            Point adj2 = projectToNodeBorder(p2, p1, NODE_W, NODE_H);
 
-            java.util.List<RoadEnum> fwd = forwardMap.getOrDefault(key, Collections.emptyList());
-            java.util.List<RoadEnum> bwd = backwardMap.getOrDefault(key, Collections.emptyList());
-
-            for (int i = 0; i < fwd.size(); i++) {
-                RoadEnum r = fwd.get(i);
-                double offset = sideSpacing + (i - (fwd.size() - 1) / 2.0) * intraSpacing;
-                RoadGeom g = new RoadGeom(p1, p2, px, py, offset);
-                roadGeom.put(r, g);
-            }
-
-            for (int i = 0; i < bwd.size(); i++) {
-                RoadEnum r = bwd.get(i);
-                double offset = -sideSpacing + (i - (bwd.size() - 1) / 2.0) * intraSpacing;
-                RoadGeom g = new RoadGeom(p2, p1, px, py, offset);
-                roadGeom.put(r, g);
-            }
+            roadGeom.put(r, new RoadGeom(adj1, adj2));
         }
+    }
+
+    private Point projectToNodeBorder(Point center, Point toward, int width, int height) {
+        double dx = toward.x - center.x;
+        double dy = toward.y - center.y;
+
+        if (dx == 0 && dy == 0)
+            return new Point(center);
+
+        double absDx = Math.abs(dx);
+        double absDy = Math.abs(dy);
+        double halfW = width / 2.0;
+        double halfH = height / 2.0;
+
+        double scale = (absDx / halfW > absDy / halfH)
+                ? halfW / absDx
+                : halfH / absDy;
+
+        return new Point(
+                center.x + (int) Math.round(dx * scale),
+                center.y + (int) Math.round(dy * scale));
     }
 
     private static final class RoadGeom {
         final Point from, to;
-        final double px, py;
-        final double offset;
 
-        RoadGeom(Point from, Point to, double px, double py, double offset) {
+        RoadGeom(Point from, Point to) {
             this.from = from;
             this.to = to;
-            this.px = px;
-            this.py = py;
-            this.offset = offset;
-        }
-
-        int sx1() {
-            return (int) Math.round(from.x + px * offset);
-        }
-
-        int sy1() {
-            return (int) Math.round(from.y + py * offset);
-        }
-
-        int sx2() {
-            return (int) Math.round(to.x + px * offset);
-        }
-
-        int sy2() {
-            return (int) Math.round(to.y + py * offset);
         }
     }
 
@@ -270,57 +212,27 @@ public class DashboardRenderer extends JPanel {
         g2.setColor(ROAD_COLOR);
 
         for (RoadGeom rg : roadGeom.values()) {
-            int sx1 = rg.sx1();
-            int sy1 = rg.sy1();
-            int sx2 = rg.sx2();
-            int sy2 = rg.sy2();
-            g2.drawLine(sx1, sy1, sx2, sy2);
-        }
-
-        Stroke prev = g2.getStroke();
-        g2.setStroke(DASHED);
-        g2.setColor(new Color(230, 230, 230, 160));
-        for (RoadGeom rg : roadGeom.values()) {
-            int sx1 = rg.sx1();
-            int sy1 = rg.sy1();
-            int sx2 = rg.sx2();
-            int sy2 = rg.sy2();
-            g2.drawLine(sx1, sy1, sx2, sy2);
-        }
-        g2.setStroke(prev);
-
-        for (RoadGeom rg : roadGeom.values()) {
-            drawArrowStatic(g2, rg);
+            g2.drawLine(rg.from.x, rg.from.y, rg.to.x, rg.to.y);
+            drawArrow(g2, rg);
         }
     }
 
-    private void drawArrowStatic(Graphics2D g2, RoadGeom rg) {
-        int sx1 = rg.sx1();
-        int sy1 = rg.sy1();
-        int sx2 = rg.sx2();
-        int sy2 = rg.sy2();
-        double angle = Math.atan2(sy2 - sy1, sx2 - sx1);
-        int size = 10;
-        int x2 = sx2 - (int) Math.round(size * Math.cos(angle - 0.4));
-        int y2 = sy2 - (int) Math.round(size * Math.sin(angle - 0.4));
-        int x3 = sx2 - (int) Math.round(size * Math.cos(angle + 0.4));
-        int y3 = sy2 - (int) Math.round(size * Math.sin(angle + 0.4));
-        Polygon p = new Polygon(new int[] { sx2, x2, x3 }, new int[] { sy2, y2, y3 }, 3);
-        g2.setColor(new Color(220, 220, 220, 200));
-        g2.fillPolygon(p);
-    }
+    private void drawArrow(Graphics2D g2, RoadGeom rg) {
+        int x1 = rg.from.x, y1 = rg.from.y;
+        int x2 = rg.to.x, y2 = rg.to.y;
 
-    private void drawGridCells(Graphics2D g2) {
-        g2.setColor(new Color(245, 245, 245));
-        int cellW = 260, cellH = 120;
-        synchronized (nodePositions) {
-            for (Point p : nodePositions.values()) {
-                g2.fillRoundRect(p.x - cellW / 2, p.y - cellH / 2, cellW, cellH, 14, 14);
-                g2.setColor(new Color(200, 200, 200, 80));
-                g2.drawRoundRect(p.x - cellW / 2, p.y - cellH / 2, cellW, cellH, 14, 14);
-                g2.setColor(new Color(245, 245, 245));
-            }
-        }
+        double angle = Math.atan2(y2 - y1, x2 - x1);
+        int size = 12;
+
+        int xA = x2 - (int) (size * Math.cos(angle - 0.4));
+        int yA = y2 - (int) (size * Math.sin(angle - 0.4));
+
+        int xB = x2 - (int) (size * Math.cos(angle + 0.4));
+        int yB = y2 - (int) (size * Math.sin(angle + 0.4));
+
+        Polygon arrow = new Polygon(new int[] { x2, xA, xB }, new int[] { y2, yA, yB }, 3);
+        g2.setColor(new Color(200, 200, 200));
+        g2.fillPolygon(arrow);
     }
 
     private void drawNodes(Graphics2D g2) {
@@ -328,115 +240,81 @@ public class DashboardRenderer extends JPanel {
             for (Map.Entry<NodeEnum, Point> e : nodePositions.entrySet()) {
                 NodeEnum node = e.getKey();
                 Point p = e.getValue();
-                int boxW = 88, boxH = 56;
+
+                int x = p.x - NODE_W / 2;
+                int y = p.y - NODE_H / 2;
 
                 if (node.getType() == NodeType.ENTRANCE) {
                     g2.setColor(new Color(200, 245, 200));
-                    g2.fillRoundRect(p.x - boxW / 2, p.y - boxH / 2, boxW, boxH, 14, 14);
+                    g2.fillRoundRect(x, y, NODE_W, NODE_H, 12, 12);
                     g2.setColor(new Color(0, 120, 40));
-                    g2.setStroke(new BasicStroke(2));
-                    g2.drawRoundRect(p.x - boxW / 2, p.y - boxH / 2, boxW, boxH, 14, 14);
+                    g2.drawRoundRect(x, y, NODE_W, NODE_H, 12, 12);
+
                 } else if (node.getType() == NodeType.EXIT) {
                     g2.setColor(new Color(255, 230, 230));
-                    g2.fillRoundRect(p.x - boxW / 2, p.y - boxH / 2, boxW, boxH, 10, 10);
+                    g2.fillRoundRect(x, y, NODE_W, NODE_H, 12, 12);
                     g2.setColor(new Color(160, 30, 30));
-                    g2.setStroke(new BasicStroke(2));
-                    g2.drawRoundRect(p.x - boxW / 2, p.y - boxH / 2, boxW, boxH, 10, 10);
+                    g2.drawRoundRect(x, y, NODE_W, NODE_H, 12, 12);
+
                 } else {
                     g2.setColor(new Color(255, 245, 210));
-                    g2.fillRect(p.x - boxW / 2, p.y - boxH / 2, boxW, boxH);
+                    g2.fillRect(x, y, NODE_W, NODE_H);
                     g2.setColor(Color.BLACK);
-                    g2.setStroke(new BasicStroke(1));
-                    g2.drawRect(p.x - boxW / 2, p.y - boxH / 2, boxW, boxH);
+                    g2.drawRect(x, y, NODE_W, NODE_H);
                 }
 
                 g2.setColor(Color.BLACK);
-                Font orig = g2.getFont();
-                Font f = orig.deriveFont(Font.BOLD, 12f);
-                g2.setFont(f);
-                FontMetrics fm = g2.getFontMetrics(f);
-                int textW = fm.stringWidth(node.name());
-                g2.drawString(node.name(), p.x - textW / 2, p.y - boxH / 2 - 8);
-                g2.setFont(orig);
+                g2.setFont(g2.getFont().deriveFont(Font.BOLD, 12f));
+                FontMetrics fm = g2.getFontMetrics();
+                String name = node.name();
+                if (node.getType() == NodeType.CROSSROAD) {
+                    // draw label centered inside the node box
+                    int textW = fm.stringWidth(name);
+                    int baseline = (int) Math.round(p.y + (fm.getAscent() - fm.getDescent()) / 2.0);
+                    g2.drawString(name, p.x - textW / 2, baseline);
+                } else {
+                    g2.drawString(name, p.x - fm.stringWidth(name) / 2, y - 6);
+                }
             }
         }
     }
 
     private void drawTrafficLightsOverlay(Graphics2D g2) {
         signalRects.clear();
+
         for (RoadEnum road : trafficLights.keySet()) {
             RoadGeom rg = roadGeom.get(road);
             if (rg == null)
                 continue;
 
-                int laneEndX = rg.sx2();
-                int laneEndY = rg.sy2();
-                double laneDx = rg.to.x - rg.from.x;
-                double laneDy = rg.to.y - rg.from.y;
-                double laneLen = Math.hypot(laneDx, laneDy);
-                if (laneLen == 0) laneLen = 1;
-                double laneUx = laneDx / laneLen;
-                double laneUy = laneDy / laneLen;
-                double margin = Config.LIGHT_BACKOFF;
-                double bx = laneEndX - laneUx * margin;
-                double by = laneEndY - laneUy * margin;
+            double dx = rg.to.x - rg.from.x;
+            double dy = rg.to.y - rg.from.y;
+            double len = Math.hypot(dx, dy);
+            if (len == 0)
+                continue;
+
+            double ux = dx / len;
+            double uy = dy / len;
+
+            int bx = (int) (rg.to.x - ux * 20);
+            int by = (int) (rg.to.y - uy * 20);
 
             int w = 14, h = 28;
-            int ix = (int) Math.round(bx - w / 2.0);
-            int iy = (int) Math.round(by - h / 2.0);
+            int x = bx - w / 2;
+            int y = by - h / 2;
 
-            signalRects.put(road, new Rectangle(ix, iy, w, h));
+            signalRects.put(road, new Rectangle(x, y, w, h));
 
             g2.setColor(new Color(40, 40, 40));
-            g2.fillRoundRect(ix, iy, w, h, 4, 4);
-            g2.setColor(new Color(30, 30, 30));
-            g2.drawRoundRect(ix, iy, w, h, 4, 4);
+            g2.fillRoundRect(x, y, w, h, 4, 4);
 
-            String state = trafficLights.getOrDefault(road, "RED").toLowerCase();
-            boolean isRed = state.equals("red");
+            boolean isRed = trafficLights.get(road).equalsIgnoreCase("red");
 
-            Color redOn = new Color(230, 60, 60);
-            Color redOff = new Color(80, 40, 40);
-            Color greenOn = new Color(50, 200, 80);
-            Color greenOff = new Color(40, 100, 40);
+            g2.setColor(isRed ? Color.RED : new Color(70, 30, 30));
+            g2.fillOval(x + 2, y + 3, 10, 10);
 
-            g2.setColor(isRed ? redOn : redOff);
-            g2.fillOval(ix + 2, iy + 4, 10, 10);
-            g2.setColor(isRed ? greenOff : greenOn);
-            g2.fillOval(ix + 2, iy + 14, 10, 10);
-
-            Font origLabelFont = g2.getFont();
-            Font labelFont = origLabelFont.deriveFont(Font.BOLD, 12f);
-            g2.setFont(labelFont);
-            FontMetrics fmLabel = g2.getFontMetrics(labelFont);
-            String label = road.name();
-            int padding = 6;
-            int textW = fmLabel.stringWidth(label);
-            int textH = fmLabel.getHeight();
-            int labelX = ix + w + 8;
-            int labelBaseline = iy + h / 2 + fmLabel.getAscent() / 2;
-
-            int rectX = labelX - padding;
-            int rectY = labelBaseline - fmLabel.getAscent() - padding;
-            int rectW = textW + padding * 2;
-            int rectH = textH + padding * 2;
-
-            g2.setColor(new Color(255, 255, 255, 230));
-            g2.fillRoundRect(rectX, rectY, rectW, rectH, 8, 8);
-            g2.setColor(new Color(0, 0, 0, 160));
-            g2.drawRoundRect(rectX, rectY, rectW, rectH, 8, 8);
-
-            g2.setColor(Color.BLACK);
-            g2.drawString(label, labelX, labelBaseline);
-            g2.setFont(origLabelFont);
+            g2.setColor(isRed ? new Color(40, 80, 40) : Color.GREEN);
+            g2.fillOval(x + 2, y + 15, 10, 10);
         }
-    }
-
-    private void drawLegend(Graphics2D g2) {
-        g2.setColor(new Color(0, 0, 0, 160));
-        Font orig = g2.getFont();
-        g2.setFont(orig.deriveFont(Font.PLAIN, 12f));
-        g2.drawString("Legend: Car=Blue, Truck=Gray, Motorcycle=Orange", 12, 18);
-        g2.setFont(orig);
     }
 }
