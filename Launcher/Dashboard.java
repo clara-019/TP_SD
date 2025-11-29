@@ -567,6 +567,11 @@ public class Dashboard extends JFrame {
         String id = v.getId();
         synchronized (this.sprites) {
             VehicleSprite s = this.sprites.get(id);
+            if (s == null) {
+                // sprite not present (could be created later or already removed) — skip UI update
+                log("Warning: sprite for " + id + " not found in handlePassRoad; skipping visual update");
+                return;
+            }
             RoadEnum road = roadFromPrevToNode(v, ve.getNode());
             Point dest = this.nodePositions.get(ve.getNode());
 
