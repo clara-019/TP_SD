@@ -2,7 +2,6 @@ package Traffic;
 
 import java.util.AbstractMap.SimpleEntry;
 
-
 import Comunication.Sender;
 import Event.*;
 import Utils.*;
@@ -54,7 +53,8 @@ public class PassRoad extends Thread {
                 if (entry != null && System.currentTimeMillis() >= entry.getKey()) {
                     vehicleQueue.remove();
                     Vehicle v = entry.getValue();
-                    Sender.sendToEventHandler(new VehicleEvent(EventType.VEHICLE_SIGNAL_ARRIVAL, v, road.getDestination(), clock.tick()));
+                    Sender.sendToEventHandler(
+                            new VehicleEvent(EventType.VEHICLE_SIGNAL_ARRIVAL, v, road.getDestination(), clock.tick()));
                     passedQueue.add(v);
                 } else {
                     Thread.sleep(50);

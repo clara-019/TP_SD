@@ -6,7 +6,7 @@ public abstract class Event implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
     private final NodeEnum node;
     private final EventType type;
-    private final long logicalClock; 
+    private final long logicalClock;
 
     public Event(EventType type, NodeEnum node, long logicalClock) {
         this.type = type;
@@ -14,9 +14,17 @@ public abstract class Event implements java.io.Serializable {
         this.logicalClock = logicalClock;
     }
 
-    public EventType getType() { return type; }
-    public NodeEnum getNode() { return node; }
-    public long getLogicalClock() { return logicalClock; }
+    public EventType getType() {
+        return type;
+    }
+
+    public NodeEnum getNode() {
+        return node;
+    }
+
+    public long getLogicalClock() {
+        return logicalClock;
+    }
 
     @Override
     public String toString() {

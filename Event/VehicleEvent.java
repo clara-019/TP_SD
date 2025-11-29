@@ -10,9 +10,11 @@ public class VehicleEvent extends Event {
         super(type, node, time);
         this.vehicle = vehicle;
     }
+
     public Vehicle getVehicle() {
         return vehicle;
     }
+
     @Override
     public String toString() {
         return String.format("VehicleEvent[%s, vehicle=%s]", super.toString(), vehicle.getId());

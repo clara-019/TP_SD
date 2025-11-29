@@ -26,5 +26,5 @@ public class SignalChangeEvent extends Event {
     public String toString() {
         return String.format("SignalChangeEvent[%s, signalColor=%s, road=%s]", super.toString(), signalColor, road);
     }
-    
+
 }

@@ -15,7 +15,7 @@ public class EventHandler extends Thread {
         this.eventQueue = p;
     }
 
-    public void stopHandler(){
+    public void stopHandler() {
         this.running = false;
     }
 

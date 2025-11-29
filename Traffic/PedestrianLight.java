@@ -2,7 +2,7 @@ package Traffic;
 
 import Utils.RoundRobin;
 
-public class PedestrianLight extends Thread{
+public class PedestrianLight extends Thread {
     private static final int GREEN_LIGHT_DURATION_MS = 5000;
 
     private final RoundRobin roundRobin;

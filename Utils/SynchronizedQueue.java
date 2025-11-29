@@ -29,13 +29,15 @@ public class SynchronizedQueue<E> {
         return queue.poll();
     }
 
-    public synchronized E peek(){
+    public synchronized E peek() {
         return queue.peek();
     }
 
-    public synchronized E peekLast(){
-        return ((LinkedList<E>)queue).peekLast();
+    public synchronized E peekLast() {
+        return ((LinkedList<E>) queue).peekLast();
     }
 
-    public synchronized int size() { return queue.size(); }
+    public synchronized int size() {
+        return queue.size();
+    }
 }

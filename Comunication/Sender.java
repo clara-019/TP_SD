@@ -8,7 +8,7 @@ import Vehicle.Vehicle;
 import Node.NodeEnum;
 import Utils.LogicalClock;
 
-public class Sender{
+public class Sender {
 
     public static void sendToEventHandler(Event event) {
         try {

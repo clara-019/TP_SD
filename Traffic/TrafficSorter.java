@@ -12,7 +12,8 @@ public class TrafficSorter extends Thread {
     private SynchronizedQueue<Vehicle> vehiclesToSort;
     private NodeEnum node;
 
-    public TrafficSorter(Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues, SynchronizedQueue<Vehicle> vehiclesToSort, NodeEnum node) {
+    public TrafficSorter(Map<RoadEnum, SynchronizedQueue<Vehicle>> trafficQueues,
+            SynchronizedQueue<Vehicle> vehiclesToSort, NodeEnum node) {
         this.trafficQueues = trafficQueues;
         this.vehiclesToSort = vehiclesToSort;
         this.node = node;

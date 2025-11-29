@@ -10,7 +10,70 @@ import Utils.*;
 import Vehicle.*;
 
 public class Entrance {
-    private static final double LAMBDA = 0.2;
+    private static final double LAMBDA = 0.3;
+    private static final Random rnd = new Random();
+    private final NodeEnum entrance;
+    private final LogicalClock clock = new LogicalClock();
+    private final int destPort;
+    private List<PathEnum> possiblePaths;
+    private int probabilitySum;
+    private int counter = 0;
+
+    public Entrance(NodeEnum entrance) {
+        this.entrance = entrance;
+        this.possiblePaths = PathEnum.getPathsFromEntrance(entrance);
+        this.probabilitySum = getProbabilitySum(possiblePaths);
+        this.destPort = RoadEnum.getRoadsFromCrossroad(entrance).get(0).getDestination().getPort();
+    }
+
+    public void start() {
+        while (true) {
+            Vehicle v = generateVehicle();
+            System.out.println("[Entrance] Vehicle created: " + v.getId() +
+                    " Type: " + v.getType() + " Path: " + v.getPath());
+
+            Sender.sendToEventHandler(new VehicleEvent(EventType.NEW_VEHICLE, v, entrance, clock.tick()));
+            Sender.sendVehicleDeparture(v, destPort, entrance, clock);
+            ;
+            try {
+                Thread.sleep(getExponentialInterval(rnd));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private int getProbabilitySum(List<PathEnum> possiblePaths) {
+        int sum = 0;
+        for (PathEnum path : possiblePaths) {
+            sum += path.getProbToBeSelected();
+        }
+        return sum;
+    }
+
+    private PathEnum selectPath(List<PathEnum> possiblePaths, int probabilitySum, Random rnd) {
+        int value = rnd.nextInt(probabilitySum);
+        int cummulativeProb = 0;
+        for (PathEnum path : possiblePaths) {
+            cummulativeProb += path.getProbToBeSelected();
+            if (value < cummulativeProb) {
+                return path;
+            }
+        }
+        return possiblePaths.get(0);
+    }
+
+    private Vehicle generateVehicle() {
+        VehicleTypes type = VehicleTypes.values()[rnd.nextInt(VehicleTypes.values().length)];
+        PathEnum selectedPath = selectPath(possiblePaths, probabilitySum, rnd);
+        return new Vehicle(entrance + "-V" + this.counter++, type, selectedPath);
+    }
+
+    private long getExponentialInterval(Random rnd) {
+        double u = rnd.nextDouble();
+        double interval = -Math.log(1 - u) / LAMBDA;
+        return (long) (interval * 1000);
+    }
 
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -25,61 +88,12 @@ public class Entrance {
             return;
         }
 
-        Random rnd = new Random();
-        int counter = 0;
-        LogicalClock clock = new LogicalClock();
-
-        SynchronizedQueue<Vehicle> outgoingQueue = new SynchronizedQueue<>();
-
-        RoadEnum road = RoadEnum.getRoadsFromCrossroad(entrance).get(0);
-        int destPort = road.getDestination().getPort();
-
+        Entrance entranceObj = new Entrance(entrance);
         try {
-            Thread.sleep(5000);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        List<PathEnum> possiblePaths = PathEnum.getPathsFromEntrance(entrance);
-        int probabilitySum = 0;
-        for(PathEnum path : possiblePaths) {
-            probabilitySum += path.getProbToBeSelected();
-        }
-        
-        while (true) {
-            VehicleTypes type = VehicleTypes.values()[rnd.nextInt(VehicleTypes.values().length)];
-            int value = rnd.nextInt(probabilitySum);
-            int cummulativeProb = 0;
-            PathEnum selectedPath = possiblePaths.get(0);
-            for(PathEnum path : possiblePaths) {
-                cummulativeProb += path.getProbToBeSelected();
-                if(value < cummulativeProb) {
-                    selectedPath = path;
-                    break;
-                }
-            }
-            Vehicle v = new Vehicle(entrance + "-V" + counter++, type, selectedPath);
-            outgoingQueue.add(v);
-
-            System.out.println("[Entrance] Vehicle created: " + v.getId() +
-                    " Type: " + v.getType() + " Path: " + v.getPath());
-
-            Sender.sendToEventHandler(new VehicleEvent(EventType.NEW_VEHICLE, v, entrance, clock.tick()));
-            Sender.sendVehicleDeparture(v, destPort, entrance, clock);
-
-            long sleepTime = getExponentialInterval(LAMBDA, rnd);
-
-            try {
-                Thread.sleep(sleepTime);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-        }
-    }
-
-    private static long getExponentialInterval(double lambda, Random rnd) {
-        double u = rnd.nextDouble();
-        double interval = -Math.log(1 - u) / lambda;
-        return (long) (interval * 1000);
+        entranceObj.start();
     }
 }
