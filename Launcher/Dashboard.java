@@ -8,7 +8,7 @@ import Node.NodeEnum;
 import Node.NodeType;
 import Traffic.RoadEnum;
 import Vehicle.Vehicle;
-import Vehicle.VehicleTypes;
+import Vehicle.VehicleType;
 import java.awt.*;
 import java.util.*;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -36,7 +36,7 @@ public class Dashboard extends JFrame {
     private final Map<NodeEnum, Point> nodePositions;
     private final DashboardModel model;
 
-    private final Map<NodeEnum, Map<VehicleTypes, Integer>> passedByNodeByType = new EnumMap<>(NodeEnum.class);
+    private final Map<NodeEnum, Map<VehicleType, Integer>> passedByNodeByType = new EnumMap<>(NodeEnum.class);
     private javax.swing.JTextArea statsPerCrossroadArea;
 
     private JTextArea logArea;
@@ -59,16 +59,16 @@ public class Dashboard extends JFrame {
     private final Map<String, Long> departTimestamps = new HashMap<>();
     private final Map<String, Long> entranceTimestamps = new HashMap<>();
     private final Map<String, Long> signalArrivalTimestamps = new HashMap<>();
-    private final Map<VehicleTypes, Integer> createdByType = new EnumMap<>(VehicleTypes.class);
-    private final Map<VehicleTypes, Integer> exitedByType = new EnumMap<>(VehicleTypes.class);
-    private final Map<VehicleTypes, Long> totalWaitByType = new EnumMap<>(VehicleTypes.class);
-    private final Map<VehicleTypes, Integer> waitCountByType = new EnumMap<>(VehicleTypes.class);
-    private final Map<VehicleTypes, Long> totalRoadByType = new EnumMap<>(VehicleTypes.class);
-    private final Map<VehicleTypes, Integer> roadCountByType = new EnumMap<>(VehicleTypes.class);
-    private final Map<VehicleTypes, Long> totalTripByType = new EnumMap<>(VehicleTypes.class);
-    private final Map<VehicleTypes, Integer> tripCountByType = new EnumMap<>(VehicleTypes.class);
-    private final Map<VehicleTypes, Long> minTripByType = new EnumMap<>(VehicleTypes.class);
-    private final Map<VehicleTypes, Long> maxTripByType = new EnumMap<>(VehicleTypes.class);
+    private final Map<VehicleType, Integer> createdByType = new EnumMap<>(VehicleType.class);
+    private final Map<VehicleType, Integer> exitedByType = new EnumMap<>(VehicleType.class);
+    private final Map<VehicleType, Long> totalWaitByType = new EnumMap<>(VehicleType.class);
+    private final Map<VehicleType, Integer> waitCountByType = new EnumMap<>(VehicleType.class);
+    private final Map<VehicleType, Long> totalRoadByType = new EnumMap<>(VehicleType.class);
+    private final Map<VehicleType, Integer> roadCountByType = new EnumMap<>(VehicleType.class);
+    private final Map<VehicleType, Long> totalTripByType = new EnumMap<>(VehicleType.class);
+    private final Map<VehicleType, Integer> tripCountByType = new EnumMap<>(VehicleType.class);
+    private final Map<VehicleType, Long> minTripByType = new EnumMap<>(VehicleType.class);
+    private final Map<VehicleType, Long> maxTripByType = new EnumMap<>(VehicleType.class);
 
     private DashboardRenderer renderer;
 
@@ -85,7 +85,7 @@ public class Dashboard extends JFrame {
 
         for (NodeEnum n : NodeEnum.values()) {
             if (n.getType() == NodeType.CROSSROAD) {
-                this.passedByNodeByType.put(n, new EnumMap<>(VehicleTypes.class));
+                this.passedByNodeByType.put(n, new EnumMap<>(VehicleType.class));
             }
         }
 
@@ -366,7 +366,7 @@ public class Dashboard extends JFrame {
                 }
                 if (sigArr != null) {
                     long waitMs = System.currentTimeMillis() - sigArr;
-                    VehicleTypes vtype = v.getType();
+                    VehicleType vtype = v.getType();
                     if (vtype != null) {
                         synchronized (this) {
                             this.totalWaitByType.put(vtype, this.totalWaitByType.getOrDefault(vtype, 0L) + waitMs);
@@ -483,23 +483,23 @@ public class Dashboard extends JFrame {
         StringBuilder activeBy = new StringBuilder();
         StringBuilder exitedBy = new StringBuilder();
 
-        for (VehicleTypes vt : VehicleTypes.values()) {
+        for (VehicleType vt : VehicleType.values()) {
             int c = createdByType.getOrDefault(vt, 0);
             int x = exitedByType.getOrDefault(vt, 0);
             createdBy.append(vt.getTypeToString()).append("=").append(c).append(" ");
             exitedBy.append(vt.getTypeToString()).append("=").append(x).append(" ");
         }
 
-        Map<VehicleTypes, Integer> activeMap = new EnumMap<>(VehicleTypes.class);
+        Map<VehicleType, Integer> activeMap = new EnumMap<>(VehicleType.class);
         synchronized (sprites) {
             for (VehicleSprite vs : sprites.values()) {
-                VehicleTypes vt = vs.vehicle == null ? null : vs.vehicle.getType();
+                VehicleType vt = vs.vehicle == null ? null : vs.vehicle.getType();
                 if (vt == null)
                     continue;
                 activeMap.put(vt, activeMap.getOrDefault(vt, 0) + 1);
             }
         }
-        for (VehicleTypes vt : VehicleTypes.values()) {
+        for (VehicleType vt : VehicleType.values()) {
             int a = activeMap.getOrDefault(vt, 0);
             activeBy.append(vt.getTypeToString()).append("=").append(a).append(" ");
         }
@@ -514,7 +514,7 @@ public class Dashboard extends JFrame {
         // compute average wait and road times per type
         StringBuilder avgWaitSb = new StringBuilder();
         StringBuilder avgRoadSb = new StringBuilder();
-        for (VehicleTypes vt : VehicleTypes.values()) {
+        for (VehicleType vt : VehicleType.values()) {
             long totalW = this.totalWaitByType.getOrDefault(vt, 0L);
             int cntW = this.waitCountByType.getOrDefault(vt, 0);
             double avgW = (cntW == 0) ? 0.0 : (totalW / 1000.0 / cntW);
@@ -533,7 +533,7 @@ public class Dashboard extends JFrame {
 
         // trip min/avg/max per type (creation -> exit)
         StringBuilder tripSb = new StringBuilder();
-        for (VehicleTypes vt : VehicleTypes.values()) {
+        for (VehicleType vt : VehicleType.values()) {
             long total = this.totalTripByType.getOrDefault(vt, 0L);
             int cnt = this.tripCountByType.getOrDefault(vt, 0);
             double avg = (cnt == 0) ? 0.0 : (total / 1000.0 / cnt);
@@ -552,8 +552,8 @@ public class Dashboard extends JFrame {
         for (NodeEnum n : NodeEnum.values()) {
             if (n.getType() != NodeType.CROSSROAD) continue;
             perCross.append(n.toString()).append(": ");
-            Map<VehicleTypes, Integer> m = this.passedByNodeByType.getOrDefault(n, Collections.emptyMap());
-            for (VehicleTypes vt : VehicleTypes.values()) {
+            Map<VehicleType, Integer> m = this.passedByNodeByType.getOrDefault(n, Collections.emptyMap());
+            for (VehicleType vt : VehicleType.values()) {
                 int cnt = m.getOrDefault(vt, 0);
                 perCross.append(vt.getTypeToString()).append("=").append(cnt).append(" ");
             }
@@ -597,7 +597,7 @@ public class Dashboard extends JFrame {
         if (v == null) return;
         synchronized (this) {
             this.totalCreated++;
-            VehicleTypes vt = v.getType();
+            VehicleType vt = v.getType();
             if (vt != null) this.createdByType.put(vt, this.createdByType.getOrDefault(vt, 0) + 1);
         }
         SwingUtilities.invokeLater(this::updateStatsLabels);
@@ -607,7 +607,7 @@ public class Dashboard extends JFrame {
         if (v == null) return;
         synchronized (this) {
             this.totalExited++;
-            VehicleTypes vt = v.getType();
+            VehicleType vt = v.getType();
             if (vt != null) this.exitedByType.put(vt, this.exitedByType.getOrDefault(vt, 0) + 1);
         }
         SwingUtilities.invokeLater(this::updateStatsLabels);
@@ -616,12 +616,12 @@ public class Dashboard extends JFrame {
     private void recordPassedAtNode(NodeEnum node, Vehicle v) {
         if (node == null || v == null) return;
         synchronized (this) {
-            Map<VehicleTypes, Integer> m = this.passedByNodeByType.get(node);
+            Map<VehicleType, Integer> m = this.passedByNodeByType.get(node);
             if (m == null) {
-                m = new EnumMap<>(VehicleTypes.class);
+                m = new EnumMap<>(VehicleType.class);
                 this.passedByNodeByType.put(node, m);
             }
-            VehicleTypes vt = v.getType();
+            VehicleType vt = v.getType();
             if (vt != null) m.put(vt, m.getOrDefault(vt, 0) + 1);
         }
         SwingUtilities.invokeLater(this::updateStatsLabels);
@@ -645,7 +645,7 @@ public class Dashboard extends JFrame {
         synchronized (this) {
             this.totalTravelTimeMs += ms;
             this.completedTrips++;
-            VehicleTypes vt = v == null ? null : v.getType();
+            VehicleType vt = v == null ? null : v.getType();
             if (vt != null) {
                 this.totalRoadByType.put(vt, this.totalRoadByType.getOrDefault(vt, 0L) + ms);
                 this.roadCountByType.put(vt, this.roadCountByType.getOrDefault(vt, 0) + 1);
@@ -666,7 +666,7 @@ public class Dashboard extends JFrame {
         if (entrance == null || entrance <= 0 || exit < entrance) return;
         long travelMs = exit - entrance;
         synchronized (this) {
-            VehicleTypes vt = v.getType();
+            VehicleType vt = v.getType();
             if (vt == null) return;
             this.totalTripByType.put(vt, this.totalTripByType.getOrDefault(vt, 0L) + travelMs);
             this.tripCountByType.put(vt, this.tripCountByType.getOrDefault(vt, 0) + 1);

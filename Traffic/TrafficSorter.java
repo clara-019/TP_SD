@@ -21,6 +21,8 @@ public class TrafficSorter extends Thread {
 
     @Override
     public void run() {
+        // Main loop: receives vehicles that arrived at the node and forwards
+        // them to the correct road queue based on the vehicle's path.
         while (true) {
             Vehicle vehicle = vehiclesToSort.remove();
             System.out.println("[TrafficSorter " + node.toString() + "] Sorting vehicle " + vehicle.getId());

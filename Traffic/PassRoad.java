@@ -31,6 +31,8 @@ public class PassRoad extends Thread {
 
         SynchronizedQueue<SimpleEntry<Long, Vehicle>> vehicleQueue = new SynchronizedQueue<>();
 
+        // Main loop: processes vehicles as they arrive, scheduling them for
+        // passage based on travel time and respective delays.
         while (true) {
             try {
                 Vehicle vehicle = arrivingQueue.poll();
@@ -54,7 +56,7 @@ public class PassRoad extends Thread {
                     vehicleQueue.remove();
                     Vehicle v = entry.getValue();
                     Sender.sendToEventHandler(
-                            new VehicleEvent(EventType.VEHICLE_SIGNAL_ARRIVAL, v, road.getDestination(), clock.tick()));
+                            new VehicleEvent(EventType.VEHICLE_SIGNAL_ARRIVAL, road.getDestination(), clock.tick(), v));
                     passedQueue.add(v);
                 } else {
                     Thread.sleep(50);

@@ -15,6 +15,8 @@ public class PedestrianLight extends Thread {
 
     @Override
     public void run() {
+        // Thread that represents the pedestrian light cycle when coordination
+        // via round-robin is used.
         while (true) {
             try {
                 roundRobin.esperarTurno(id);
