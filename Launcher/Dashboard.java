@@ -73,9 +73,9 @@ public class Dashboard extends JFrame {
     private DashboardRenderer renderer;
 
     public Dashboard() {
-        super("Traffic Simulator Dashboard");
+        super("Traffic Simulator Dashboard - Organized Layout");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1000, 900);
+        setSize(1400, 950);
         setLayout(new BorderLayout());
 
         this.model = new DashboardModel();
@@ -89,12 +89,10 @@ public class Dashboard extends JFrame {
             }
         }
 
-        this.renderer = new DashboardRenderer(this.model);
-        add(this.renderer, BorderLayout.CENTER);
-
+        // TOP PANEL: Controls and Status
         JPanel top = new JPanel(new BorderLayout());
         top.setBackground(new Color(34, 40, 49));
-        top.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        top.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
         JButton startBtn = makeButton("Start");
         JButton stopBtn = makeButton("Stop");
@@ -116,11 +114,97 @@ public class Dashboard extends JFrame {
 
         add(top, BorderLayout.NORTH);
 
-        this.logArea = new JTextArea(10, 50);
-        this.logArea.setEditable(false);
-        this.logArea.setFont(new Font("Consolas", Font.PLAIN, 13));
-        add(new JScrollPane(this.logArea), BorderLayout.SOUTH);
+        // CENTER PANEL: Canvas (vehicle movement area) + Logs on right
+        JPanel centerContainer = new JPanel(new BorderLayout());
 
+        // Main renderer canvas
+        this.renderer = new DashboardRenderer(this.model);
+        centerContainer.add(this.renderer, BorderLayout.CENTER);
+
+        // Right side: Logs Panel
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.setBackground(new Color(245, 245, 245));
+        rightPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(180, 180, 180), 1),
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        ));
+
+        JLabel logsTitle = new JLabel("Logs");
+        logsTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        rightPanel.add(logsTitle, BorderLayout.NORTH);
+
+        this.logArea = new JTextArea(15, 30);
+        this.logArea.setEditable(false);
+        this.logArea.setFont(new Font("Consolas", Font.PLAIN, 11));
+        this.logArea.setLineWrap(true);
+        this.logArea.setWrapStyleWord(true);
+        JScrollPane logScroll = new JScrollPane(this.logArea);
+        logScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        rightPanel.add(logScroll, BorderLayout.CENTER);
+
+        centerContainer.add(rightPanel, BorderLayout.EAST);
+
+        add(centerContainer, BorderLayout.CENTER);
+
+        // BOTTOM PANEL: Statistics (organized sections)
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.X_AXIS));
+        bottomPanel.setBackground(new Color(240, 240, 240));
+        bottomPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
+        // Section 1: Overall Stats
+        JPanel overallStatsPanel = createStatSection("Overall Statistics");
+        statsCreatedLabel = new JLabel("Created: 0");
+        statsActiveLabel = new JLabel("Active: 0");
+        statsExitedLabel = new JLabel("Exited: 0");
+        statsAvgTimeLabel = new JLabel("Avg Trip: 0.0s");
+        overallStatsPanel.add(statsCreatedLabel);
+        overallStatsPanel.add(Box.createVerticalStrut(4));
+        overallStatsPanel.add(statsActiveLabel);
+        overallStatsPanel.add(Box.createVerticalStrut(4));
+        overallStatsPanel.add(statsExitedLabel);
+        overallStatsPanel.add(Box.createVerticalStrut(4));
+        overallStatsPanel.add(statsAvgTimeLabel);
+        bottomPanel.add(overallStatsPanel);
+        bottomPanel.add(Box.createHorizontalStrut(10));
+
+        // Section 2: Per-Type Stats
+        JPanel typeStatsPanel = createStatSection("By Vehicle Type");
+        statsCreatedByTypeLabel = new JLabel("<html>Created: -</html>");
+        statsActiveByTypeLabel = new JLabel("<html>Active: -</html>");
+        statsExitedByTypeLabel = new JLabel("<html>Exited: -</html>");
+        statsAvgWaitByTypeLabel = new JLabel("<html>Avg Wait: -</html>");
+        statsAvgRoadByTypeLabel = new JLabel("<html>Avg Road: -</html>");
+        statsTripByTypeLabel = new JLabel("<html>Trip (min/avg/max): -</html>");
+        typeStatsPanel.add(statsCreatedByTypeLabel);
+        typeStatsPanel.add(Box.createVerticalStrut(4));
+        typeStatsPanel.add(statsActiveByTypeLabel);
+        typeStatsPanel.add(Box.createVerticalStrut(4));
+        typeStatsPanel.add(statsExitedByTypeLabel);
+        typeStatsPanel.add(Box.createVerticalStrut(4));
+        typeStatsPanel.add(statsAvgWaitByTypeLabel);
+        typeStatsPanel.add(Box.createVerticalStrut(4));
+        typeStatsPanel.add(statsAvgRoadByTypeLabel);
+        typeStatsPanel.add(Box.createVerticalStrut(4));
+        typeStatsPanel.add(statsTripByTypeLabel);
+        bottomPanel.add(typeStatsPanel);
+        bottomPanel.add(Box.createHorizontalStrut(10));
+
+        // Section 3: Per-Crossroad Stats
+        JPanel crossroadStatsPanel = createStatSection("Crossroad Stats");
+        statsPerCrossroadArea = new JTextArea(7, 25);
+        statsPerCrossroadArea.setEditable(false);
+        statsPerCrossroadArea.setFont(new Font("Consolas", Font.PLAIN, 10));
+        statsPerCrossroadArea.setLineWrap(true);
+        statsPerCrossroadArea.setWrapStyleWord(true);
+        JScrollPane crossroadScroll = new JScrollPane(statsPerCrossroadArea);
+        crossroadScroll.setPreferredSize(new Dimension(180, 160));
+        crossroadStatsPanel.add(crossroadScroll);
+        bottomPanel.add(crossroadStatsPanel);
+
+        add(bottomPanel, BorderLayout.SOUTH);
+
+        // Animation timer
         new Timer(Config.TIMER_DELAY_MS, e -> {
             boolean changed = false;
             synchronized (this.sprites) {
@@ -138,46 +222,25 @@ public class Dashboard extends JFrame {
             if (changed)
                 renderer.repaint();
         }).start();
+    }
 
-        JPanel statsPanel = new JPanel();
-        statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.Y_AXIS));
-        statsPanel.setBackground(new Color(250, 250, 250));
-        statsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    private JPanel createStatSection(String title) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(new Color(255, 255, 255));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                BorderFactory.createEmptyBorder(6, 6, 6, 6)
+        ));
+        panel.setMaximumSize(new Dimension(300, 200));
 
-        JLabel title = new JLabel("Statistics");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        statsPanel.add(title);
-        statsPanel.add(Box.createVerticalStrut(8));
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        titleLabel.setForeground(new Color(40, 40, 40));
+        panel.add(titleLabel);
+        panel.add(Box.createVerticalStrut(6));
 
-        statsCreatedLabel = new JLabel("Created: 0");
-        statsActiveLabel = new JLabel("Active: 0");
-        statsExitedLabel = new JLabel("Exited: 0");
-        statsAvgTimeLabel = new JLabel("Avg trip (s): 0.0");
-
-        statsCreatedByTypeLabel = new JLabel("Created by type: ");
-        statsActiveByTypeLabel = new JLabel("Active by type: ");
-        statsExitedByTypeLabel = new JLabel("Exited by type: ");
-        statsAvgWaitByTypeLabel = new JLabel("Avg wait (s) by type: ");
-        statsAvgRoadByTypeLabel = new JLabel("Avg road (s) by type: ");
-
-        statsPanel.add(statsCreatedLabel);
-        statsPanel.add(statsActiveLabel);
-        statsPanel.add(statsExitedLabel);
-        statsPanel.add(statsAvgTimeLabel);
-        statsPanel.add(Box.createVerticalStrut(6));
-        statsPanel.add(statsCreatedByTypeLabel);
-        statsPanel.add(statsActiveByTypeLabel);
-        statsPanel.add(statsExitedByTypeLabel);
-        statsPanel.add(statsAvgWaitByTypeLabel);
-        statsPanel.add(statsAvgRoadByTypeLabel);
-        statsTripByTypeLabel = new JLabel("Trip min/avg/max (s) by type: ");
-        statsPanel.add(statsTripByTypeLabel);
-        statsPerCrossroadArea = new JTextArea(6, 20);
-        statsPerCrossroadArea.setEditable(false);
-        statsPerCrossroadArea.setFont(new Font("Consolas", Font.PLAIN, 12));
-        statsPanel.add(new JScrollPane(statsPerCrossroadArea));
-
-        add(statsPanel, BorderLayout.EAST);
+        return panel;
     }
 
     private void requestGracefulStop() {
@@ -588,8 +651,12 @@ public class Dashboard extends JFrame {
 
     private void log(String s) {
         SwingUtilities.invokeLater(() -> {
-            if (logArea != null)
-                logArea.append(s + "\n");
+            if (logArea != null) {
+                String timestamp = new java.text.SimpleDateFormat("HH:mm:ss.SSS").format(new java.util.Date());
+                logArea.append("[" + timestamp + "] " + s + "\n");
+                // Auto-scroll to bottom
+                logArea.setCaretPosition(logArea.getDocument().getLength());
+            }
         });
     }
 
