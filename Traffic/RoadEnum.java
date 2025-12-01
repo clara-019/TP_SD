@@ -27,25 +27,39 @@ public enum RoadEnum {
     private final int timeToTravel;
     private final int greenLightDuration;
 
-    RoadEnum(NodeEnum origin, NodeEnum destination, int timeToTravel) {
-        this.origin = origin;
-        this.destination = destination;
-        this.timeToTravel = timeToTravel;
-        this.greenLightDuration = 5000;
+    /**
+     * Create a road with a specified travel time and the default green
+     * light duration.
+     *
+     * @param origin       origin node of the road
+     * @param destination  destination node of the road
+     * @param timeToTravel base travel time in milliseconds
+     */
+    private RoadEnum(NodeEnum origin, NodeEnum destination, int timeToTravel) {
+        this(origin, destination, timeToTravel, 0);
     }
 
-    RoadEnum(NodeEnum origin, NodeEnum destination, int timteToTravel, int greenLightDuration) {
+    /**
+     * Create a road with an explicit travel time and green light duration.
+     *
+     * @param origin             origin node of the road
+     * @param destination        destination node of the road
+     * @param timteToTravel      base travel time in milliseconds
+     * @param greenLightDuration green light duration in milliseconds
+     */
+    private RoadEnum(NodeEnum origin, NodeEnum destination, int timteToTravel, int greenLightDuration) {
         this.origin = origin;
         this.destination = destination;
         this.timeToTravel = timteToTravel;
         this.greenLightDuration = greenLightDuration;
     }
 
-    @Override
-    public String toString() {
-        return this.name();
-    }
-
+    /**
+     * Convert a string identifier to its {@link RoadEnum} value.
+     *
+     * @param roadStr string representation of the enum (for example "E1_CR1")
+     * @return matching {@link RoadEnum} or {@code null} if not found
+     */
     public static RoadEnum toRoadEnum(String roadStr) {
         for (RoadEnum road : values()) {
             if (road.name().equals(roadStr)) {
@@ -54,6 +68,7 @@ public enum RoadEnum {
         }
         return null;
     }
+
     /**
      * Origin of the road.
      *
@@ -118,5 +133,10 @@ public enum RoadEnum {
                 roads.add(road);
         }
         return roads;
+    }
+
+    @Override
+    public String toString() {
+        return this.name();
     }
 }
