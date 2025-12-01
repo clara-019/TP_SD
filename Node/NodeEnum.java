@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Enumeração que representa todos os nós disponíveis no sistema
- * Cada nó tem um nome e uma porta de comunicação associada
+ * Enumeration representing all nodes available in the system.
+ * Each node has a name and an associated communication port.
  */
 public enum NodeEnum {
     E1(NodeType.ENTRANCE, 5001),
@@ -39,15 +39,29 @@ public enum NodeEnum {
         }
         return null;
     }
-
+    /**
+     * Returns the communication port associated with this node.
+     *
+     * @return TCP port used by this node
+     */
     public int getPort() {
         return port;
     }
 
+    /**
+     * Returns the node type (entrance, exit, crossroad).
+     *
+     * @return {@link NodeType} of the node
+     */
     public NodeType getType() {
         return type;
     }
 
+    /**
+     * Returns the list of nodes that are entrances in the system.
+     *
+     * @return list of {@link NodeEnum} of type ENTRANCE
+     */
     public static List<NodeEnum> getEntrances() {
         List<NodeEnum> entrances = new ArrayList<>();
         for (NodeEnum node : values()) {

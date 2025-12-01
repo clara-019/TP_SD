@@ -1,5 +1,8 @@
 package Event;
 
+/**
+ * Event types supported by the simulator.
+ */
 public enum EventType {
     TRAFFIC_LIGHT_CHANGE,
     NEW_VEHICLE,

@@ -1,5 +1,10 @@
 package Vehicle;
 
+/**
+ * Vehicle types supported by the simulator.
+ * <p>
+ * Each type contains a multiplier to adjust the base road traversal time.
+ */
 public enum VehicleTypes {
     CAR(1.0),
     TRUCK(2.0), // camião = 2x o carro
@@ -11,18 +16,31 @@ public enum VehicleTypes {
         this.multiplier = multiplier;
     }
 
+    /**
+     * Returns the multiplier applied to the road base time.
+     *
+     * @return multiplier (e.g. 1.0 for car, 2.0 for truck)
+     */
     public double getMultiplier() {
         return multiplier;
     }
 
     /**
-     * @param baseTimeMs tempo base da rua vindo do RoadEnum (em ms)
-     * @return tempo final (em ms) ajustado ao tipo do veículo
+     * Calculates the time needed for this vehicle to pass a road given the
+     * base road time.
+     *
+     * @param baseTimeMs base road time from {@code RoadEnum} (ms)
+     * @return adjusted time for the vehicle type (ms)
      */
     public long getTimeToPass(long baseTimeMs) {
         return (long) (baseTimeMs * multiplier);
     }
 
+    /**
+     * String representation of the vehicle type.
+     *
+     * @return type name in English (used in UI/serialization)
+     */
     public String getTypeToString() {
         switch (this) {
             case CAR:
@@ -35,6 +53,12 @@ public enum VehicleTypes {
         return null;
     }
 
+    /**
+     * Converts a string to the corresponding enum, case-insensitive.
+     *
+     * @param typeStr string with the type name (e.g. "Car")
+     * @return corresponding {@code VehicleTypes} or {@code null} if none matches
+     */
     public static VehicleTypes getVehicleTypeFromString(String typeStr) {
         for (VehicleTypes type : values()) {
             if (type.getTypeToString().equalsIgnoreCase(typeStr)) {

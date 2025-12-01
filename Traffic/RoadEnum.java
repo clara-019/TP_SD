@@ -5,8 +5,8 @@ import java.util.*;
 import Node.NodeEnum;
 
 /**
- * Enumeração que representa todas as estradas disponíveis no sistema
- * Cada estrada conecta dois nós
+ * Enumeration representing all roads available in the system.
+ * Each road connects two nodes.
  */
 public enum RoadEnum {
     E1_CR1(NodeEnum.E1, NodeEnum.CR1, 1000, 5000),
@@ -54,23 +54,48 @@ public enum RoadEnum {
         }
         return null;
     }
-
+    /**
+     * Origin of the road.
+     *
+     * @return {@link NodeEnum} origin
+     */
     public NodeEnum getOrigin() {
         return origin;
     }
 
+    /**
+     * Destination of the road.
+     *
+     * @return {@link NodeEnum} destination
+     */
     public NodeEnum getDestination() {
         return destination;
     }
 
+    /**
+     * Base time (ms) to traverse this road.
+     *
+     * @return time in milliseconds
+     */
     public int getTime() {
         return timeToTravel;
     }
 
+    /**
+     * Green light duration for this road (ms).
+     *
+     * @return duration in ms
+     */
     public int getGreenLightDuration() {
         return greenLightDuration;
     }
 
+    /**
+     * Returns the roads that end at the provided crossroad/node.
+     *
+     * @param node destination node
+     * @return list of {@link RoadEnum}
+     */
     public static List<RoadEnum> getRoadsToCrossroad(NodeEnum node) {
         List<RoadEnum> roads = new ArrayList<>();
         for (RoadEnum road : values()) {
@@ -80,6 +105,12 @@ public enum RoadEnum {
         return roads;
     }
 
+    /**
+     * Returns the roads that originate at the provided crossroad/node.
+     *
+     * @param node origin node
+     * @return list of {@link RoadEnum}
+     */
     public static List<RoadEnum> getRoadsFromCrossroad(NodeEnum node) {
         List<RoadEnum> roads = new ArrayList<>();
         for (RoadEnum road : values()) {

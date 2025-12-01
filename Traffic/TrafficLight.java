@@ -29,6 +29,7 @@ public class TrafficLight extends Thread {
 
     @Override
     public void run() {
+        // Thread that controls the traffic light cycle for a specific road.
         NodeEnum currentNode = road.getDestination();
         while (true) {
             try {
@@ -39,7 +40,7 @@ public class TrafficLight extends Thread {
 
                 System.out.println("Traffic Light GREEN for: " + road);
                 Sender.sendToEventHandler(
-                        new SignalChangeEvent(currentNode, clock.get(), "Green", road));
+                        new SignalChangeEvent(road, clock.get(), "Green"));
 
                 while (true) {
                     long now = System.currentTimeMillis();
@@ -75,7 +76,7 @@ public class TrafficLight extends Thread {
                 }
                 System.out.println("Traffic Light RED for: " + road);
                 Sender.sendToEventHandler(
-                        new SignalChangeEvent(currentNode, clock.get(), "Red", road));
+                        new SignalChangeEvent(road, clock.get(), "Red"));
                 Thread.sleep(200);
                 roundRobin.terminarTurno();
 

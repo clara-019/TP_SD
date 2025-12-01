@@ -12,7 +12,17 @@ import Traffic.TrafficSorter;
 import Utils.*;
 import Vehicle.Vehicle;
 
+/**
+ * Exit node: receives vehicles that finished their path and sends exit
+ * events to the central EventHandler.
+ */
 public class Exit {
+    /**
+     * Main process for the exit node. Initializes queues, helper threads and
+     * sends exit events when a vehicle reaches this node.
+     *
+     * @param args argument with the exit node identifier (e.g. "S")
+     */
     public static void main(String[] args) {
         if (args.length == 0) {
             System.out.println("Please provide a crossroad string as an argument.");
@@ -42,12 +52,12 @@ public class Exit {
             passRoad.start();
         }
 
-        new Receiver(incommingQueue, exit.getPort(), exit, clock).start();
+        new Receiver(incommingQueue, exit, clock).start();
         new TrafficSorter(trafficQueues, incommingQueue, exit).start();
 
         while (true) {
             Vehicle vehicle = passedQueue.remove();
-            Sender.sendToEventHandler(new VehicleEvent(EventType.VEHICLE_EXIT, vehicle, exit, clock.tick()));
+            Sender.sendToEventHandler(new VehicleEvent(EventType.VEHICLE_EXIT, exit, clock.tick(), vehicle));
         }
 
     }
