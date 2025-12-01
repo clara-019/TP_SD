@@ -1,12 +1,21 @@
 package Comunication;
 
+import Event.*;
+import Node.NodeEnum;
+import Utils.*;
+import Vehicle.*;
 import java.io.*;
 import java.net.*;
 
-import Event.*;
-import Utils.*;
-import Vehicle.*;
-import Node.NodeEnum;
+/**
+ * The Receiver class listens on a TCP port and receives events
+ * sent by other nodes in the system. Every time an event related to
+ * a vehicle is received, the Receiver updates the logical clock, forwards the event
+ * to the EventHandler and adds the received vehicle to a synchronized queue.
+ *
+ * This class runs in a separate thread and keeps listening until it is
+ * explicitly stopped using the `stopReceiver()` method.
+ */
 
 public class Receiver extends Thread {
     private final SynchronizedQueue<Vehicle> queue;
@@ -35,14 +44,23 @@ public class Receiver extends Thread {
         this.interrupt();
     }
 
+    /**
+    * Main thread body.
+    * Creates a ServerSocket and waits for incoming events,
+    * processing each one as it arrives.
+    */
     @Override
     public void run() {
         try {
             serverSocket = new ServerSocket(port);
             while (running) {
+                 // Waits for a TCP connection (blocks until a client connects)
                 Socket socket = serverSocket.accept();
+                 // Create a stream to receive objects sent by the client
                 ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+                // Read the sent object (assumed to be a VehicleEvent)
                 VehicleEvent event = (VehicleEvent) in.readObject();
+                // Send the processed event to the EventHandler
                 Sender.sendToEventHandler(new VehicleEvent(EventType.VEHICLE_ROAD_ARRIVAL, event.getVehicle(), node,
                         clock.update(event.getLogicalClock())));
                 queue.add(event.getVehicle());

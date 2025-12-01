@@ -2,8 +2,8 @@ package Vehicle;
 
 public enum VehicleTypes {
     CAR(1.0),
-    TRUCK(2.0), // camião = 2x o carro
-    MOTORCYCLE(0.5); // moto = metade
+    TRUCK(2.0), // truck = 2x the car
+    MOTORCYCLE(0.5); // motorcycle = half
 
     private final double multiplier;
 
@@ -16,8 +16,8 @@ public enum VehicleTypes {
     }
 
     /**
-     * @param baseTimeMs tempo base da rua vindo do RoadEnum (em ms)
-     * @return tempo final (em ms) ajustado ao tipo do veículo
+     * @param baseTimeMs base time for the road from RoadEnum (in ms)
+     * @return final time (in ms) adjusted by the vehicle type
      */
     public long getTimeToPass(long baseTimeMs) {
         return (long) (baseTimeMs * multiplier);

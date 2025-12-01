@@ -5,19 +5,19 @@ import java.util.*;
 import Node.*;
 
 /**
- * Enumeração que define os percursos possíveis para os veículos
- * Cada percurso é uma sequência de cruzamentos
+ * Enumeration that defines the possible routes for vehicles.
+ * Each route is a sequence of crossroads (nodes).
  */
 public enum PathEnum {
-    E1_CR1_CR4_CR5_S(100), // Percurso: E1 → CR1 → CR4 → CR5 → S
-    E1_CR1_CR2_CR5_S(1), // Percurso: E1 → CR1 → CR2 → CR5 → S
-    E1_CR1_CR2_CR3_S(1), // Percurso: E1 → CR1 → CR2 → CR3 → S
-    E2_CR2_CR5_S(34), // Percurso: E2 → CR2 → CR5 → S
-    E2_CR2_CR3_S(33), // Percurso: E2 → CR2 → CR3 → S
-    E2_CR2_CR1_CR4_CR5_S(33), // Percurso: E2 → CR2 → CR1 → CR4 → CR5 → S
-    E3_CR3_S(34), // Percurso: E3 → CR3 → S
-    E3_CR3_CR2_CR5_S(33), // Percurso: E3 → CR3 → CR2 → CR5 → S
-    E3_CR3_CR2_CR1_CR4_CR5_S(33); // Percurso: E3 → CR3 → CR2 → CR1 → CR4 → CR5 → S
+    E1_CR1_CR4_CR5_S(100), // Path: E1 → CR1 → CR4 → CR5 → S
+    E1_CR1_CR2_CR5_S(1), // Path: E1 → CR1 → CR2 → CR5 → S
+    E1_CR1_CR2_CR3_S(1), // Path: E1 → CR1 → CR2 → CR3 → S
+    E2_CR2_CR5_S(34), // Path: E2 → CR2 → CR5 → S
+    E2_CR2_CR3_S(33), // Path: E2 → CR2 → CR3 → S
+    E2_CR2_CR1_CR4_CR5_S(33), // Path: E2 → CR2 → CR1 → CR4 → CR5 → S
+    E3_CR3_S(34), // Path: E3 → CR3 → S
+    E3_CR3_CR2_CR5_S(33), // Path: E3 → CR3 → CR2 → CR5 → S
+    E3_CR3_CR2_CR1_CR4_CR5_S(33); // Path: E3 → CR3 → CR2 → CR1 → CR4 → CR5 → S
 
     private final int probToBeSelected;
 
@@ -26,9 +26,9 @@ public enum PathEnum {
     }
 
     /**
-     * Retorna a sequência de cruzamentos do percurso
-     * 
-     * @return Lista ordenada de cruzamentos
+     * Returns the sequence of nodes for the path
+     *
+     * @return Ordered list of nodes
      */
     public List<NodeEnum> getPath() {
         switch (this) {
@@ -67,7 +67,7 @@ public enum PathEnum {
     }
 
     /**
-     * Retorna a representação em string do percurso
+     * Returns the string representation of the path
      */
     @Override
     public String toString() {

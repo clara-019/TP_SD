@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Enumeração que representa todos os nós disponíveis no sistema
- * Cada nó tem um nome e uma porta de comunicação associada
+ * Enumeration that represents all available nodes in the system.
+ * Each node has a name and an associated communication port.
  */
 public enum NodeEnum {
     E1(NodeType.ENTRANCE, 5001),
