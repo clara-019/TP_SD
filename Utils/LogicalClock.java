@@ -17,8 +17,7 @@ public class LogicalClock {
     }
 
     /**
-     * Updates the clock with an external value ensuring causal order
-     * (Lamport clocks): time = max(time, received) + 1.
+     * Updates the clock with an external value ensuring causal order.
      *
      * @param received timestamp received from another process
      * @return new clock value after update

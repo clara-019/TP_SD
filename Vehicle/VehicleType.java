@@ -7,11 +7,16 @@ package Vehicle;
  */
 public enum VehicleType {
     CAR(1.0),
-    TRUCK(2.0), // camião = 2x o carro
-    MOTORCYCLE(0.5); // moto = metade
+    TRUCK(2.0),
+    MOTORCYCLE(0.5);
 
     private final double multiplier;
 
+    /**
+     * Create a vehicle type with the given time multiplier.
+     *
+     * @param multiplier multiplier applied to base road time
+     */
     VehicleType(double multiplier) {
         this.multiplier = multiplier;
     }
@@ -19,7 +24,7 @@ public enum VehicleType {
     /**
      * Returns the multiplier applied to the road base time.
      *
-     * @return multiplier (e.g. 1.0 for car, 2.0 for truck)
+     * @return multiplier (Ex. 1.0 for car, 2.0 for truck)
      */
     public double getMultiplier() {
         return multiplier;
@@ -49,21 +54,6 @@ public enum VehicleType {
                 return "Truck";
             case MOTORCYCLE:
                 return "Motorcycle";
-        }
-        return null;
-    }
-
-    /**
-     * Converts a string to the corresponding enum, case-insensitive.
-     *
-     * @param typeStr string with the type name (e.g. "Car")
-     * @return corresponding {@code VehicleTypes} or {@code null} if none matches
-     */
-    public static VehicleType getVehicleTypeFromString(String typeStr) {
-        for (VehicleType type : values()) {
-            if (type.getTypeToString().equalsIgnoreCase(typeStr)) {
-                return type;
-            }
         }
         return null;
     }

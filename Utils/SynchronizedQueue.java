@@ -22,15 +22,6 @@ public class SynchronizedQueue<E> {
     }
 
     /**
-     * Checks whether the queue is empty.
-     *
-     * @return {@code true} if empty, otherwise {@code false}
-     */
-    public synchronized boolean isEmpty() {
-        return queue.isEmpty();
-    }
-
-    /**
      * Removes and returns the first element of the queue. If the queue is
      * empty, waits until an element becomes available.
      *
@@ -67,21 +58,11 @@ public class SynchronizedQueue<E> {
     }
 
     /**
-     * Returns the last element of the queue (useful when the underlying
-     * implementation is a LinkedList).
+     * Returns the last element of the queue.
      *
      * @return last element or {@code null}
      */
     public synchronized E peekLast() {
         return ((LinkedList<E>) queue).peekLast();
-    }
-
-    /**
-     * Returns the current size of the queue.
-     *
-     * @return number of elements in the queue
-     */
-    public synchronized int size() {
-        return queue.size();
     }
 }
