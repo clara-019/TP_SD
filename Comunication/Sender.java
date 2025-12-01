@@ -8,27 +8,10 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 /**
- * The Sender class is responsible for sending events over TCP sockets.
- * It can send:
- *  - events to the local EventHandler (port 8000)
- *  - events to other nodes specified by port
- *
- * It is used by the Receiver and other components to communicate
- * across the distributed system.
- */
-
-/**
  * Helper utility that sends serialized {@link Event} objects over TCP to
  * other components of the simulator.
  */
 public class Sender {
-
-/**
-    * Sends an event to the EventHandler running on the local machine
-    * at port 8000.
-    *
-    * @param event event to send
-    */
 
     /**
      * Sends an event directly to the central EventHandler (port 8001).
@@ -48,6 +31,12 @@ public class Sender {
         }
     }
 
+    /**
+     * Sends an event to a specific node (destination port).
+     *
+     * @param event    event to send
+     * @param destPort TCP port of the destination node
+     */
     private static void sendVehicle(Event event, int destPort) {
         try {
             Socket socket = new Socket("localhost", destPort);
@@ -60,20 +49,6 @@ public class Sender {
             e.printStackTrace();
         }
     }
-
-    /**
-    * Sends a vehicle departure event.
-    *
-    * - Creates the departure event
-    * - Updates the logical clock (tick())
-    * - Sends the event to the EventHandler
-    * - Then sends the event to the destination node (port destPort)
-    *
-    * @param v vehicle that is departing
-    * @param destPort port of the node to send the vehicle to
-    * @param node current node identifier
-    * @param clock logical clock used for distributed event ordering
-    */
 
     /**
      * Sends a vehicle departure event: notifies both the central EventHandler
