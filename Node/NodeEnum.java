@@ -21,16 +21,23 @@ public enum NodeEnum {
     private final NodeType type;
     private final int port;
 
+    /**
+     * Create a node enumeration value.
+     *
+     * @param type the {@link NodeType} for this node
+     * @param port the TCP port used by the node for inter-process communication
+     */
     NodeEnum(NodeType type, int port) {
         this.type = type;
         this.port = port;
     }
 
-    @Override
-    public String toString() {
-        return this.name();
-    }
-
+    /**
+     * Converts a string identifier to the corresponding {@link NodeEnum}.
+     *
+     * @param nodeString the enum name (for example "E1", "CR1", "S")
+     * @return the matching {@link NodeEnum} or {@code null} if not found
+     */
     public static NodeEnum toNodeEnum(String nodeString) {
         for (NodeEnum node : values()) {
             if (node.name().equals(nodeString)) {
@@ -39,6 +46,7 @@ public enum NodeEnum {
         }
         return null;
     }
+
     /**
      * Returns the communication port associated with this node.
      *
@@ -70,5 +78,10 @@ public enum NodeEnum {
             }
         }
         return entrances;
+    }
+
+    @Override
+    public String toString() {
+        return this.name();
     }
 }

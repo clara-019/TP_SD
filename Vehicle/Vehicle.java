@@ -13,7 +13,7 @@ import Node.NodeEnum;
 public class Vehicle implements Serializable {
     private static final long serialVersionUID = 1L;
     private String id;
-    private VehicleTypes type;
+    private VehicleType type;
     private long entranceTime;
     private long exitTime;
     private PathEnum path;
@@ -25,7 +25,7 @@ public class Vehicle implements Serializable {
      * @param type vehicle type (affects traversal times)
      * @param path path the vehicle will follow
      */
-    public Vehicle(String id, VehicleTypes type, PathEnum path) {
+    public Vehicle(String id, VehicleType type, PathEnum path) {
         this.id = id;
         this.type = type;
         this.path = path;
@@ -45,7 +45,7 @@ public class Vehicle implements Serializable {
      *
      * @return enum representing the vehicle type
      */
-    public VehicleTypes getType() {
+    public VehicleType getType() {
         return type;
     }
 

@@ -1,7 +1,7 @@
 package Launcher;
 
 import Vehicle.Vehicle;
-import Vehicle.VehicleTypes;
+import Vehicle.VehicleType;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -115,11 +115,11 @@ public class VehicleSprite {
     }
 
     public void draw(Graphics2D g2) {
-        VehicleTypes vt = vehicle.getType();
+        VehicleType vt = vehicle.getType();
         if (vt == null)
-            vt = VehicleTypes.CAR;
+            vt = VehicleType.CAR;
 
-        Color fill = (vt == VehicleTypes.TRUCK) ? TRUCK_FILL : (vt == VehicleTypes.MOTORCYCLE ? MOTOR_FILL : CAR_FILL);
+        Color fill = (vt == VehicleType.TRUCK) ? TRUCK_FILL : (vt == VehicleType.MOTORCYCLE ? MOTOR_FILL : CAR_FILL);
 
         AffineTransform old = g2.getTransform();
         g2.translate(x, y);

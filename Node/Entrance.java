@@ -9,13 +9,19 @@ import Traffic.RoadEnum;
 import Utils.*;
 import Vehicle.*;
 
+/**
+ * Entrance node responsible for periodically generating vehicles and
+ * sending creation/departure events to the rest of the system.
+ * <p>
+ * The entrance simulates vehicle arrivals using an exponential inter-arrival
+ * distribution. Each generated {@link Vehicle} is assigned a random
+ * {@link VehicleType} and a route selected from the {@link PathEnum} options
+ * for this entrance. Created vehicles are reported to the event handler and
+ * their departure is sent to the destination crossroad over the network.
+ */
 public class Entrance {
-    /**
-     * Entrance node responsible for periodically generating vehicles and
-     * sending creation/departure events to the system.
-     */
     private static final double LAMBDA = 0.3;
-    private static final Random rnd = new Random();
+    private static final Random RND = new Random();
     private final NodeEnum entrance;
     private final LogicalClock clock = new LogicalClock();
     private final int destPort;
@@ -24,15 +30,17 @@ public class Entrance {
     private int counter = 0;
 
     /**
-     * Entrance constructor.
+     * Constructs and starts the entrance node runner for the provided node
+     * identifier.
      *
-     * @param entrance entrance node (E1, E2, ...)
+     * @param entrance the {@link Node.NodeEnum} identifying this entrance node
      */
     private Entrance(NodeEnum entrance) {
         this.entrance = entrance;
         this.possiblePaths = PathEnum.getPathsFromEntrance(entrance);
-        this.probabilitySum = getProbabilitySum(possiblePaths);
+        this.probabilitySum = getProbabilitySum();
         this.destPort = RoadEnum.getRoadsFromCrossroad(entrance).get(0).getDestination().getPort();
+        start();
     }
 
     /**
@@ -49,7 +57,7 @@ public class Entrance {
             Sender.sendVehicleDeparture(v, destPort, entrance, clock);
             ;
             try {
-                Thread.sleep(getExponentialInterval(rnd));
+                Thread.sleep(getExponentialInterval());
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -59,12 +67,11 @@ public class Entrance {
     /**
      * Sums the selection weights of the possible paths for this entrance.
      *
-     * @param possiblePaths list of possible paths
      * @return sum of probability/weight values
      */
-    private int getProbabilitySum(List<PathEnum> possiblePaths) {
+    private int getProbabilitySum() {
         int sum = 0;
-        for (PathEnum path : possiblePaths) {
+        for (PathEnum path : this.possiblePaths) {
             sum += path.getProbToBeSelected();
         }
         return sum;
@@ -73,21 +80,18 @@ public class Entrance {
     /**
      * Selects a path randomly based on weights/probabilities.
      *
-     * @param possiblePaths list of possible paths
-     * @param probabilitySum sum of probabilities
-     * @param rnd            random number generator
      * @return selected path
      */
-    private PathEnum selectPath(List<PathEnum> possiblePaths, int probabilitySum, Random rnd) {
-        int value = rnd.nextInt(probabilitySum);
+    private PathEnum selectPath() {
+        int value = RND.nextInt(this.probabilitySum);
         int cummulativeProb = 0;
-        for (PathEnum path : possiblePaths) {
+        for (PathEnum path : this.possiblePaths) {
             cummulativeProb += path.getProbToBeSelected();
             if (value < cummulativeProb) {
                 return path;
             }
         }
-        return possiblePaths.get(0);
+        return this.possiblePaths.get(0);
     }
 
     /**
@@ -96,8 +100,8 @@ public class Entrance {
      * @return new {@link Vehicle}
      */
     private Vehicle generateVehicle() {
-        VehicleTypes type = VehicleTypes.values()[rnd.nextInt(VehicleTypes.values().length)];
-        PathEnum selectedPath = selectPath(possiblePaths, probabilitySum, rnd);
+        VehicleType type = VehicleType.values()[RND.nextInt(VehicleType.values().length)];
+        PathEnum selectedPath = selectPath();
         return new Vehicle(entrance + "-V" + this.counter++, type, selectedPath);
     }
 
@@ -105,11 +109,10 @@ public class Entrance {
      * Computes an exponential interval (in ms) used to space vehicle
      * generation.
      *
-     * @param rnd random number generator
      * @return interval in milliseconds
      */
-    private long getExponentialInterval(Random rnd) {
-        double u = rnd.nextDouble();
+    private long getExponentialInterval() {
+        double u = RND.nextDouble();
         double interval = -Math.log(1 - u) / LAMBDA;
         return (long) (interval * 1000);
     }
@@ -117,11 +120,11 @@ public class Entrance {
     /**
      * Entry point to run an instance of the entrance as an application.
      *
-     * @param args argument with the entrance node identifier (e.g. "E1")
+     * @param args argument with the entrance node identifier (Ex. "E1")
      */
     public static void main(String[] args) {
         if (args.length == 0) {
-            System.out.println("Please provide a crossroad string as an argument.");
+            System.out.println("Please provide an entrance string as an argument.");
             return;
         }
         String entranceId = args[0];
@@ -132,12 +135,12 @@ public class Entrance {
             return;
         }
 
-        Entrance entranceObj = new Entrance(entrance);
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        entranceObj.start();
+        new Entrance(entrance);
+
     }
 }

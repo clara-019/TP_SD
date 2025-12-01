@@ -5,14 +5,14 @@ package Vehicle;
  * <p>
  * Each type contains a multiplier to adjust the base road traversal time.
  */
-public enum VehicleTypes {
+public enum VehicleType {
     CAR(1.0),
     TRUCK(2.0), // camião = 2x o carro
     MOTORCYCLE(0.5); // moto = metade
 
     private final double multiplier;
 
-    VehicleTypes(double multiplier) {
+    VehicleType(double multiplier) {
         this.multiplier = multiplier;
     }
 
@@ -59,8 +59,8 @@ public enum VehicleTypes {
      * @param typeStr string with the type name (e.g. "Car")
      * @return corresponding {@code VehicleTypes} or {@code null} if none matches
      */
-    public static VehicleTypes getVehicleTypeFromString(String typeStr) {
-        for (VehicleTypes type : values()) {
+    public static VehicleType getVehicleTypeFromString(String typeStr) {
+        for (VehicleType type : values()) {
             if (type.getTypeToString().equalsIgnoreCase(typeStr)) {
                 return type;
             }
