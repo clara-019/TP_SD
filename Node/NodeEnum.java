@@ -27,7 +27,7 @@ public enum NodeEnum {
      * @param type the {@link NodeType} for this node
      * @param port the TCP port used by the node for inter-process communication
      */
-    NodeEnum(NodeType type, int port) {
+    private NodeEnum(NodeType type, int port) {
         this.type = type;
         this.port = port;
     }
