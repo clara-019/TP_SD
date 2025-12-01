@@ -31,9 +31,9 @@ public enum PathEnum {
     }
 
     /**
-     * Returns the sequence of nodes corresponding to this path.
+     * Returns the sequence of nodes for the path
      *
-     * @return ordered list of {@link NodeEnum} representing the path
+     * @return Ordered list of nodes
      */
     public List<NodeEnum> getPath() {
         switch (this) {
@@ -67,6 +67,7 @@ public enum PathEnum {
      * @param entrance entrance node (Ex. E1, E2, E3)
      * @return list of {@link PathEnum} that start at the given entrance
      */
+
     public static List<PathEnum> getPathsFromEntrance(NodeEnum entrance) {
         List<PathEnum> paths = new ArrayList<>();
         for (PathEnum path : PathEnum.values()) {
@@ -78,9 +79,7 @@ public enum PathEnum {
     }
 
     /**
-     * Returns a human-readable representation of the path.
-     *
-     * @return string with the sequence of nodes separated by " -> "
+     * Returns the string representation of the path
      */
     @Override
     public String toString() {
@@ -108,12 +107,6 @@ public enum PathEnum {
         }
     }
 
-    /**
-     * Probability (weight) that this path will be selected when generating
-     * vehicles.
-     *
-     * @return integer value representing the relative probability
-     */
     public int getProbToBeSelected() {
         return probToBeSelected;
     }
