@@ -1,3 +1,0 @@
-Relógio do sistema
-Implementar PassRoad
-Centralização dos eventos

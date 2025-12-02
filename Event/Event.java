@@ -3,48 +3,55 @@ package Event;
 import Node.NodeEnum;
 
 /**
- * Classe abstrata que representa um evento genérico no sistema distribuído.
- * Todos os eventos enviados entre nós (como chegada ou partida de veículos)
- * herdam desta classe.
- *
- * Implementa Serializable para permitir envio através de sockets TCP.
+ * Base event for the simulator event system.
+ * <p>
+ * Each event has a type, an associated node, and a logical clock timestamp.
  */
-
 public abstract class Event implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
     private final NodeEnum node;
     private final EventType type;
     private final long logicalClock;
 
- /**
-     * Construtor base para qualquer evento.
+    /**
+     * Base constructor for an event.
      *
-     * @param type          tipo do evento
-     * @param node          nó responsável pelo evento
-     * @param logicalClock  timestamp lógico do evento (Lamport clock)
+     * @param type         event type
+     * @param node         node associated with the event
+     * @param logicalClock logical clock timestamp of the event
      */
-
     public Event(EventType type, NodeEnum node, long logicalClock) {
         this.type = type;
         this.node = node;
         this.logicalClock = logicalClock;
     }
 
+    /**
+     * Returns the event type.
+     *
+     * @return {@link EventType} of the event
+     */
     public EventType getType() {
         return type;
     }
 
+    /**
+     * Returns the node associated with the event.
+     *
+     * @return {@link NodeEnum} of the node
+     */
     public NodeEnum getNode() {
         return node;
     }
 
+    /**
+     * Returns the logical clock timestamp of the event.
+     *
+     * @return logical clock timestamp (long)
+     */
     public long getLogicalClock() {
         return logicalClock;
     }
-
- /**
-     * Representação em String útil para debug e logs.
-     */
 
     @Override
     public String toString() {

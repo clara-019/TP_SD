@@ -53,13 +53,13 @@ public class TrafficLight extends Thread {
     public void run() {
         while (true) {
             try {
-                this.roundRobin.esperarTurno(RoadEnum.getRoadsToCrossroad(this.node).indexOf(road));
+                this.roundRobin.esperarTurno(RoadEnum.getRoadsToCrossroad(this.node).indexOf(this.road));
 
                 long greenStartTime = System.currentTimeMillis();
-                long greenEndTime = greenStartTime + road.getGreenLightDuration();
+                long greenEndTime = greenStartTime + this.road.getGreenLightDuration();
 
-                System.out.println("Traffic Light GREEN for: " + road);
-                Sender.sendToEventHandler(new SignalChangeEvent(road, clock.get(), "Green"));
+                System.out.println("Traffic Light GREEN for: " + this.road);
+                Sender.sendToEventHandler(new SignalChangeEvent(this.road, this.clock.get(), "Green"));
 
                 handleGreenLight(greenEndTime);
 
@@ -97,6 +97,7 @@ public class TrafficLight extends Thread {
             }
             long passTimeMs = vehicle.getType().getTimeToPass(TIME_TO_PASS_MS);
             if (now + passTimeMs > greenEndTime) {
+                Thread.sleep(greenEndTime - now);
                 break;
             }
             Thread.sleep(passTimeMs);
