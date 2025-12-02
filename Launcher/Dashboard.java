@@ -36,8 +36,11 @@ public class Dashboard extends JFrame {
     private final Map<NodeEnum, Point> nodePositions;
     private final DashboardModel model;
 
-    private final Map<NodeEnum, Map<VehicleType, Integer>> passedByNodeByType = new EnumMap<>(NodeEnum.class);
+    private final Statistics stats = new Statistics();
     private javax.swing.JTextArea statsPerCrossroadArea;
+    private static final long PASS_DELAY_MS = 200L;
+    private final Map<RoadEnum, Deque<java.util.AbstractMap.SimpleEntry<Long, String>>> passingSchedule = new EnumMap<>(
+            RoadEnum.class);
 
     private JTextArea logArea;
     private JLabel statusLabel;
@@ -52,24 +55,6 @@ public class Dashboard extends JFrame {
     private JLabel statsAvgRoadByTypeLabel;
     private JLabel statsTripByTypeLabel;
 
-    private int totalCreated = 0;
-    private int totalExited = 0;
-    private long totalTravelTimeMs = 0L;
-    private int completedTrips = 0;
-    private final Map<String, Long> departTimestamps = new HashMap<>();
-    private final Map<String, Long> entranceTimestamps = new HashMap<>();
-    private final Map<String, Long> signalArrivalTimestamps = new HashMap<>();
-    private final Map<VehicleType, Integer> createdByType = new EnumMap<>(VehicleType.class);
-    private final Map<VehicleType, Integer> exitedByType = new EnumMap<>(VehicleType.class);
-    private final Map<VehicleType, Long> totalWaitByType = new EnumMap<>(VehicleType.class);
-    private final Map<VehicleType, Integer> waitCountByType = new EnumMap<>(VehicleType.class);
-    private final Map<VehicleType, Long> totalRoadByType = new EnumMap<>(VehicleType.class);
-    private final Map<VehicleType, Integer> roadCountByType = new EnumMap<>(VehicleType.class);
-    private final Map<VehicleType, Long> totalTripByType = new EnumMap<>(VehicleType.class);
-    private final Map<VehicleType, Integer> tripCountByType = new EnumMap<>(VehicleType.class);
-    private final Map<VehicleType, Long> minTripByType = new EnumMap<>(VehicleType.class);
-    private final Map<VehicleType, Long> maxTripByType = new EnumMap<>(VehicleType.class);
-
     private DashboardRenderer renderer;
 
     public Dashboard() {
@@ -82,14 +67,11 @@ public class Dashboard extends JFrame {
 
         this.sprites = model.getSprites();
         this.nodePositions = model.getNodePositions();
-
-        for (NodeEnum n : NodeEnum.values()) {
-            if (n.getType() == NodeType.CROSSROAD) {
-                this.passedByNodeByType.put(n, new EnumMap<>(VehicleType.class));
-            }
+        // initialize per-road UI schedule to keep animation order consistent
+        for (RoadEnum r : RoadEnum.values()) {
+            this.passingSchedule.put(r, new ArrayDeque<>());
         }
 
-        // TOP PANEL: Controls and Status
         JPanel top = new JPanel(new BorderLayout());
         top.setBackground(new Color(34, 40, 49));
         top.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
@@ -114,20 +96,16 @@ public class Dashboard extends JFrame {
 
         add(top, BorderLayout.NORTH);
 
-        // CENTER PANEL: Canvas (vehicle movement area) + Logs on right
         JPanel centerContainer = new JPanel(new BorderLayout());
 
-        // Main renderer canvas
         this.renderer = new DashboardRenderer(this.model);
         centerContainer.add(this.renderer, BorderLayout.CENTER);
 
-        // Right side: Logs Panel
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBackground(new Color(245, 245, 245));
         rightPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(180, 180, 180), 1),
-                BorderFactory.createEmptyBorder(8, 8, 8, 8)
-        ));
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)));
 
         JLabel logsTitle = new JLabel("Logs");
         logsTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -143,10 +121,10 @@ public class Dashboard extends JFrame {
         rightPanel.add(logScroll, BorderLayout.CENTER);
 
         centerContainer.add(rightPanel, BorderLayout.EAST);
-
         add(centerContainer, BorderLayout.CENTER);
 
-        // BOTTOM PANEL: Statistics (organized sections) - wrapped in scrollable container
+        // BOTTOM PANEL: Statistics (organized sections) - wrapped in scrollable
+        // container
         JPanel statsContainerPanel = new JPanel();
         statsContainerPanel.setLayout(new BoxLayout(statsContainerPanel, BoxLayout.X_AXIS));
         statsContainerPanel.setBackground(new Color(240, 240, 240));
@@ -177,7 +155,7 @@ public class Dashboard extends JFrame {
         statsAvgWaitByTypeLabel = new JLabel("<html>Avg Wait: -</html>");
         statsAvgRoadByTypeLabel = new JLabel("<html>Avg Road: -</html>");
         statsTripByTypeLabel = new JLabel("<html>Trip (min/avg/max): -</html>");
-        
+
         JPanel typeStatsContent = new JPanel();
         typeStatsContent.setLayout(new BoxLayout(typeStatsContent, BoxLayout.Y_AXIS));
         typeStatsContent.setBackground(Color.WHITE);
@@ -192,7 +170,7 @@ public class Dashboard extends JFrame {
         typeStatsContent.add(statsAvgRoadByTypeLabel);
         typeStatsContent.add(Box.createVerticalStrut(4));
         typeStatsContent.add(statsTripByTypeLabel);
-        
+
         JScrollPane typeStatsScroll = new JScrollPane(typeStatsContent);
         typeStatsScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         typeStatsScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -202,7 +180,6 @@ public class Dashboard extends JFrame {
         statsContainerPanel.add(typeStatsPanel);
         statsContainerPanel.add(Box.createHorizontalStrut(10));
 
-        // Section 3: Per-Crossroad Stats
         JPanel crossroadStatsPanel = createStatSection("Crossroad Stats");
         statsPerCrossroadArea = new JTextArea(7, 25);
         statsPerCrossroadArea.setEditable(false);
@@ -220,7 +197,6 @@ public class Dashboard extends JFrame {
         bottomScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         add(bottomScroll, BorderLayout.SOUTH);
 
-        // Animation timer
         new Timer(Config.TIMER_DELAY_MS, e -> {
             boolean changed = false;
             synchronized (this.sprites) {
@@ -246,8 +222,7 @@ public class Dashboard extends JFrame {
         panel.setBackground(new Color(255, 255, 255));
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                BorderFactory.createEmptyBorder(6, 6, 6, 6)
-        ));
+                BorderFactory.createEmptyBorder(6, 6, 6, 6)));
         panel.setMaximumSize(new Dimension(300, 200));
 
         JLabel titleLabel = new JLabel(title);
@@ -428,32 +403,22 @@ public class Dashboard extends JFrame {
                 synchronized (this.sprites) {
                     this.sprites.put(id, new VehicleSprite(id, v, p.x, p.y));
                 }
-                // record creation/entrance timestamp locally (EventHandler may also set it)
                 long ent = (v.getEntranceTime() > 0) ? v.getEntranceTime() : System.currentTimeMillis();
-                synchronized (this.entranceTimestamps) {
-                    this.entranceTimestamps.put(id, ent);
-                }
-                recordCreatedVehicle(v);
+                this.stats.recordEntranceTimestamp(id, ent);
+                this.stats.recordCreatedVehicle(v);
                 break;
             }
 
             case VEHICLE_DEPARTURE: {
-                // compute wait at signal (if we have arrival timestamp)
-                Long sigArr = null;
-                synchronized (this.signalArrivalTimestamps) {
-                    sigArr = this.signalArrivalTimestamps.remove(id);
-                }
+                Long sigArr = this.stats.removeSignalArrival(id);
                 if (sigArr != null) {
                     long waitMs = System.currentTimeMillis() - sigArr;
                     VehicleType vtype = v.getType();
                     if (vtype != null) {
-                        synchronized (this) {
-                            this.totalWaitByType.put(vtype, this.totalWaitByType.getOrDefault(vtype, 0L) + waitMs);
-                            this.waitCountByType.put(vtype, this.waitCountByType.getOrDefault(vtype, 0) + 1);
-                        }
+                        this.stats.recordWaitForType(vtype, waitMs);
                     }
                 }
-                recordDepartureTimestamp(id);
+                this.stats.recordDepartureTimestamp(id);
                 this.model.removeSpriteFromAllQueues(id);
                 SwingUtilities.invokeLater(this::updateStatsLabels);
                 Point nodePoint = this.nodePositions.get(ve.getNode());
@@ -474,19 +439,32 @@ public class Dashboard extends JFrame {
             }
 
             case VEHICLE_SIGNAL_ARRIVAL: {
-                // record signal arrival timestamp for wait calculations
-                synchronized (this.signalArrivalTimestamps) {
-                    this.signalArrivalTimestamps.put(id, System.currentTimeMillis());
+                this.stats.recordSignalArrival(id);
+                // Remove the vehicle's scheduled UI entry for the incoming road
+                RoadEnum removeRoad = roadFromPrevToNode(v, ve.getNode());
+                if (removeRoad != null) {
+                    Deque<java.util.AbstractMap.SimpleEntry<Long, String>> dq = this.passingSchedule.get(removeRoad);
+                    if (dq != null) {
+                        synchronized (dq) {
+                            Iterator<java.util.AbstractMap.SimpleEntry<Long, String>> it = dq.iterator();
+                            while (it.hasNext()) {
+                                java.util.AbstractMap.SimpleEntry<Long, String> e = it.next();
+                                if (id.equals(e.getValue())) {
+                                    it.remove();
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
-                Long dep = removeDepartureTimestamp(id);
+                Long dep = this.stats.removeDepartureTimestamp(id);
                 if (dep != null) {
                     long dur = System.currentTimeMillis() - dep;
-                    recordTravelTime(v, dur);
+                    this.stats.recordTravelTime(v, dur);
                     SwingUtilities.invokeLater(this::updateStatsLabels);
                 }
 
-                // Record that this vehicle reached this node (used for per-crossroad statistics)
-                recordPassedAtNode(ve.getNode(), v);
+                this.stats.recordPassedAtNode(ve.getNode(), v);
 
                 RoadEnum incoming = roadFromPrevToNode(v, ve.getNode());
                 if (incoming == null) {
@@ -510,12 +488,9 @@ public class Dashboard extends JFrame {
                     if (s != null)
                         s.markForRemoval();
                 }
-                this.recordExitedVehicle(v);
-                // record full trip time from creation to exit for per-type min/avg/max
-                recordTripTimeByType(v);
-                synchronized (this.departTimestamps) {
-                    this.departTimestamps.remove(id);
-                }
+                this.stats.recordExitedVehicle(v);
+                this.stats.recordTripTimeByType(v);
+                this.stats.removeDepartureTimestamp(id);
                 this.model.removeSpriteFromAllQueues(id);
                 SwingUtilities.invokeLater(this::updateStatsLabels);
                 break;
@@ -536,16 +511,10 @@ public class Dashboard extends JFrame {
             active = sprites.size();
         }
 
-        int created;
-        int exited;
-        long travelMs;
-        int trips;
-        synchronized (this) {
-            created = totalCreated;
-            exited = totalExited;
-            travelMs = totalTravelTimeMs;
-            trips = completedTrips;
-        }
+        int created = this.stats.getTotalCreated();
+        int exited = this.stats.getTotalExited();
+        long travelMs = this.stats.getTotalTravelTimeMs();
+        int trips = this.stats.getCompletedTrips();
 
         double avgSec = (trips == 0) ? 0.0 : (travelMs / 1000.0 / trips);
 
@@ -562,9 +531,11 @@ public class Dashboard extends JFrame {
         StringBuilder activeBy = new StringBuilder();
         StringBuilder exitedBy = new StringBuilder();
 
+        Map<VehicleType, Integer> createdMap = this.stats.getCreatedByType();
+        Map<VehicleType, Integer> exitedMap = this.stats.getExitedByType();
         for (VehicleType vt : VehicleType.values()) {
-            int c = createdByType.getOrDefault(vt, 0);
-            int x = exitedByType.getOrDefault(vt, 0);
+            int c = createdMap.getOrDefault(vt, 0);
+            int x = exitedMap.getOrDefault(vt, 0);
             createdBy.append(vt.getTypeToString()).append("=").append(c).append(" ");
             exitedBy.append(vt.getTypeToString()).append("=").append(x).append(" ");
         }
@@ -590,18 +561,16 @@ public class Dashboard extends JFrame {
         if (statsExitedByTypeLabel != null)
             statsExitedByTypeLabel.setText("Exited by type: " + exitedBy.toString().trim());
 
-        // compute average wait and road times per type
         StringBuilder avgWaitSb = new StringBuilder();
+        Map<VehicleType, Long> avgWaitMs = this.stats.getAvgWaitByType();
         StringBuilder avgRoadSb = new StringBuilder();
+        Map<VehicleType, Double> avgRoad = this.stats.getAvgRoadByTypeSeconds();
         for (VehicleType vt : VehicleType.values()) {
-            long totalW = this.totalWaitByType.getOrDefault(vt, 0L);
-            int cntW = this.waitCountByType.getOrDefault(vt, 0);
-            double avgW = (cntW == 0) ? 0.0 : (totalW / 1000.0 / cntW);
+            long avgMs = avgWaitMs.getOrDefault(vt, 0L);
+            double avgW = (avgMs == 0L) ? 0.0 : (avgMs / 1000.0);
             avgWaitSb.append(vt.getTypeToString()).append("=").append(String.format("%.2f", avgW)).append(" ");
 
-            long totalR = this.totalRoadByType.getOrDefault(vt, 0L);
-            int cntR = this.roadCountByType.getOrDefault(vt, 0);
-            double avgR = (cntR == 0) ? 0.0 : (totalR / 1000.0 / cntR);
+            double avgR = avgRoad.getOrDefault(vt, 0.0);
             avgRoadSb.append(vt.getTypeToString()).append("=").append(String.format("%.2f", avgR)).append(" ");
         }
 
@@ -610,161 +579,101 @@ public class Dashboard extends JFrame {
         if (statsAvgRoadByTypeLabel != null)
             statsAvgRoadByTypeLabel.setText("Avg road (s) by type: " + avgRoadSb.toString().trim());
 
-        // trip min/avg/max per type (creation -> exit)
         StringBuilder tripSb = new StringBuilder();
+        Map<VehicleType, long[]> tripStats = this.stats.getTripStatsMillis();
         for (VehicleType vt : VehicleType.values()) {
-            long total = this.totalTripByType.getOrDefault(vt, 0L);
-            int cnt = this.tripCountByType.getOrDefault(vt, 0);
-            double avg = (cnt == 0) ? 0.0 : (total / 1000.0 / cnt);
-            long min = this.minTripByType.getOrDefault(vt, 0L);
-            long max = this.maxTripByType.getOrDefault(vt, 0L);
-            double minS = (min == 0L) ? 0.0 : (min / 1000.0);
-            double maxS = (max == 0L) ? 0.0 : (max / 1000.0);
+            long[] arr = tripStats.getOrDefault(vt, new long[] { 0L, 0L, 0L });
+            double minS = (arr[0] == 0L) ? 0.0 : (arr[0] / 1000.0);
+            double avgS = (arr[1] == 0L) ? 0.0 : (arr[1] / 1000.0);
+            double maxS = (arr[2] == 0L) ? 0.0 : (arr[2] / 1000.0);
             tripSb.append(vt.getTypeToString()).append("=")
                     .append(String.format("%.2f", minS)).append("/")
-                    .append(String.format("%.2f", avg)).append("/")
+                    .append(String.format("%.2f", avgS)).append("/")
                     .append(String.format("%.2f", maxS)).append(" ");
         }
-        if (statsTripByTypeLabel != null) statsTripByTypeLabel.setText("Trip min/avg/max (s) by type: " + tripSb.toString().trim());
+        if (statsTripByTypeLabel != null)
+            statsTripByTypeLabel.setText("Trip min/avg/max (s) by type: " + tripSb.toString().trim());
 
         StringBuilder perCross = new StringBuilder();
+        Map<NodeEnum, Map<VehicleType, Integer>> perNode = this.stats.getPassedByNodeByType();
         for (NodeEnum n : NodeEnum.values()) {
-            if (n.getType() != NodeType.CROSSROAD) continue;
+            if (n.getType() != NodeType.CROSSROAD)
+                continue;
             perCross.append(n.toString()).append(": ");
-            Map<VehicleType, Integer> m = this.passedByNodeByType.getOrDefault(n, Collections.emptyMap());
+            Map<VehicleType, Integer> m = perNode.getOrDefault(n, Collections.emptyMap());
             for (VehicleType vt : VehicleType.values()) {
                 int cnt = m.getOrDefault(vt, 0);
                 perCross.append(vt.getTypeToString()).append("=").append(cnt).append(" ");
             }
             perCross.append("\n");
         }
-        if (statsPerCrossroadArea != null) statsPerCrossroadArea.setText(perCross.toString().trim());
+        if (statsPerCrossroadArea != null)
+            statsPerCrossroadArea.setText(perCross.toString().trim());
 
     }
 
     private void handlePassRoad(VehicleEvent ve, Vehicle v) {
         String id = v.getId();
+        VehicleSprite s;
         synchronized (this.sprites) {
-            VehicleSprite s = this.sprites.get(id);
-            if (s == null) {
-                // sprite not present (could be created later or already removed) — skip UI update
-                log("Warning: sprite for " + id + " not found in handlePassRoad; skipping visual update");
-                return;
-            }
-            RoadEnum road = roadFromPrevToNode(v, ve.getNode());
-            Point dest = this.nodePositions.get(ve.getNode());
-
-            long baseTime = (road == null) ? 1000L : road.getTime();
-            long base = v.getType().getTimeToPass(baseTime);
-            long anim = (long) (base * 2.5);
-
-            s.clearFaceTarget();
-            s.setTarget(dest.x, dest.y, anim);
+            s = this.sprites.get(id);
         }
-    }
+        if (s == null) {
+            log("Warning: sprite for " + id + " not found in handlePassRoad; skipping visual update");
+            return;
+        }
 
-    
+        RoadEnum road = roadFromPrevToNode(v, ve.getNode());
+        if (road == null) {
+            log("Warning: cannot determine road for vehicle " + id + " in handlePassRoad");
+            return;
+        }
+
+        Point dest = this.nodePositions.get(ve.getNode());
+
+        long baseTime = (road == null) ? 1000L : road.getTime();
+        long passMs = v.getType().getTimeToPass(baseTime);
+        long scheduledFinish = System.currentTimeMillis() + passMs;
+
+        Deque<java.util.AbstractMap.SimpleEntry<Long, String>> dq = this.passingSchedule.get(road);
+        if (dq == null) {
+            synchronized (this.passingSchedule) {
+                dq = this.passingSchedule.computeIfAbsent(road, r -> new ArrayDeque<>());
+            }
+        }
+
+        long corrected;
+        synchronized (dq) {
+            java.util.AbstractMap.SimpleEntry<Long, String> last = dq.peekLast();
+            if (last != null && scheduledFinish < last.getKey()) {
+                corrected = last.getKey() + PASS_DELAY_MS;
+            } else {
+                corrected = scheduledFinish;
+            }
+            dq.addLast(new java.util.AbstractMap.SimpleEntry<>(corrected, id));
+        }
+
+        long anim = Math.max(200L, corrected - System.currentTimeMillis());
+        s.clearFaceTarget();
+        s.setTarget(dest.x, dest.y, (int) anim);
+    }
 
     private void log(String s) {
         SwingUtilities.invokeLater(() -> {
             if (logArea != null) {
                 String timestamp = new java.text.SimpleDateFormat("HH:mm:ss.SSS").format(new java.util.Date());
                 logArea.append("[" + timestamp + "] " + s + "\n");
-                // Auto-scroll to bottom
                 logArea.setCaretPosition(logArea.getDocument().getLength());
             }
         });
     }
 
-    private void recordCreatedVehicle(Vehicle v) {
-        if (v == null) return;
-        synchronized (this) {
-            this.totalCreated++;
-            VehicleType vt = v.getType();
-            if (vt != null) this.createdByType.put(vt, this.createdByType.getOrDefault(vt, 0) + 1);
-        }
-        SwingUtilities.invokeLater(this::updateStatsLabels);
-    }
-
-    private void recordExitedVehicle(Vehicle v) {
-        if (v == null) return;
-        synchronized (this) {
-            this.totalExited++;
-            VehicleType vt = v.getType();
-            if (vt != null) this.exitedByType.put(vt, this.exitedByType.getOrDefault(vt, 0) + 1);
-        }
-        SwingUtilities.invokeLater(this::updateStatsLabels);
-    }
-
-    private void recordPassedAtNode(NodeEnum node, Vehicle v) {
-        if (node == null || v == null) return;
-        synchronized (this) {
-            Map<VehicleType, Integer> m = this.passedByNodeByType.get(node);
-            if (m == null) {
-                m = new EnumMap<>(VehicleType.class);
-                this.passedByNodeByType.put(node, m);
-            }
-            VehicleType vt = v.getType();
-            if (vt != null) m.put(vt, m.getOrDefault(vt, 0) + 1);
-        }
-        SwingUtilities.invokeLater(this::updateStatsLabels);
-    }
-
-    private void recordDepartureTimestamp(String id) {
-        if (id == null) return;
-        synchronized (this.departTimestamps) {
-            this.departTimestamps.put(id, System.currentTimeMillis());
-        }
-    }
-
-    private Long removeDepartureTimestamp(String id) {
-        if (id == null) return null;
-        synchronized (this.departTimestamps) {
-            return this.departTimestamps.remove(id);
-        }
-    }
-
-    private void recordTravelTime(Vehicle v, long ms) {
-        synchronized (this) {
-            this.totalTravelTimeMs += ms;
-            this.completedTrips++;
-            VehicleType vt = v == null ? null : v.getType();
-            if (vt != null) {
-                this.totalRoadByType.put(vt, this.totalRoadByType.getOrDefault(vt, 0L) + ms);
-                this.roadCountByType.put(vt, this.roadCountByType.getOrDefault(vt, 0) + 1);
-            }
-        }
-    }
-
-    private void recordTripTimeByType(Vehicle v) {
-        if (v == null) return;
-        String id = v.getId();
-        Long entrance = null;
-        synchronized (this.entranceTimestamps) {
-            entrance = this.entranceTimestamps.remove(id);
-        }
-        if (entrance == null || entrance <= 0) entrance = v.getEntranceTime();
-        long exit = v.getExitTime();
-        if (exit <= 0) exit = System.currentTimeMillis();
-        if (entrance == null || entrance <= 0 || exit < entrance) return;
-        long travelMs = exit - entrance;
-        synchronized (this) {
-            VehicleType vt = v.getType();
-            if (vt == null) return;
-            this.totalTripByType.put(vt, this.totalTripByType.getOrDefault(vt, 0L) + travelMs);
-            this.tripCountByType.put(vt, this.tripCountByType.getOrDefault(vt, 0) + 1);
-            Long prevMin = this.minTripByType.get(vt);
-            if (prevMin == null || travelMs < prevMin) this.minTripByType.put(vt, travelMs);
-            Long prevMax = this.maxTripByType.get(vt);
-            if (prevMax == null || travelMs > prevMax) this.maxTripByType.put(vt, travelMs);
-        }
-        SwingUtilities.invokeLater(this::updateStatsLabels);
-    }
-
     private RoadEnum roadFromPrevToNode(Vehicle v, NodeEnum node) {
-        if (v == null || node == null) return null;
+        if (v == null || node == null)
+            return null;
         NodeEnum prev = v.findPreviousNode(node);
-        if (prev == null) return null;
+        if (prev == null)
+            return null;
         return RoadEnum.toRoadEnum(prev.toString() + "_" + node.toString());
     }
 

@@ -67,7 +67,7 @@ public class VehicleSprite {
     }
 
     public boolean shouldRemoveNow() {
-        return removeWhenArrives && !moving;
+        return this.removeWhenArrives;
     }
 
     public boolean updatePosition() {
