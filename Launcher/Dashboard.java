@@ -146,11 +146,11 @@ public class Dashboard extends JFrame {
 
         add(centerContainer, BorderLayout.CENTER);
 
-        // BOTTOM PANEL: Statistics (organized sections)
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.X_AXIS));
-        bottomPanel.setBackground(new Color(240, 240, 240));
-        bottomPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        // BOTTOM PANEL: Statistics (organized sections) - wrapped in scrollable container
+        JPanel statsContainerPanel = new JPanel();
+        statsContainerPanel.setLayout(new BoxLayout(statsContainerPanel, BoxLayout.X_AXIS));
+        statsContainerPanel.setBackground(new Color(240, 240, 240));
+        statsContainerPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
         // Section 1: Overall Stats
         JPanel overallStatsPanel = createStatSection("Overall Statistics");
@@ -165,10 +165,11 @@ public class Dashboard extends JFrame {
         overallStatsPanel.add(statsExitedLabel);
         overallStatsPanel.add(Box.createVerticalStrut(4));
         overallStatsPanel.add(statsAvgTimeLabel);
-        bottomPanel.add(overallStatsPanel);
-        bottomPanel.add(Box.createHorizontalStrut(10));
+        overallStatsPanel.setMaximumSize(new Dimension(180, 200));
+        statsContainerPanel.add(overallStatsPanel);
+        statsContainerPanel.add(Box.createHorizontalStrut(10));
 
-        // Section 2: Per-Type Stats
+        // Section 2: Per-Type Stats (with scroll if needed)
         JPanel typeStatsPanel = createStatSection("By Vehicle Type");
         statsCreatedByTypeLabel = new JLabel("<html>Created: -</html>");
         statsActiveByTypeLabel = new JLabel("<html>Active: -</html>");
@@ -176,19 +177,30 @@ public class Dashboard extends JFrame {
         statsAvgWaitByTypeLabel = new JLabel("<html>Avg Wait: -</html>");
         statsAvgRoadByTypeLabel = new JLabel("<html>Avg Road: -</html>");
         statsTripByTypeLabel = new JLabel("<html>Trip (min/avg/max): -</html>");
-        typeStatsPanel.add(statsCreatedByTypeLabel);
-        typeStatsPanel.add(Box.createVerticalStrut(4));
-        typeStatsPanel.add(statsActiveByTypeLabel);
-        typeStatsPanel.add(Box.createVerticalStrut(4));
-        typeStatsPanel.add(statsExitedByTypeLabel);
-        typeStatsPanel.add(Box.createVerticalStrut(4));
-        typeStatsPanel.add(statsAvgWaitByTypeLabel);
-        typeStatsPanel.add(Box.createVerticalStrut(4));
-        typeStatsPanel.add(statsAvgRoadByTypeLabel);
-        typeStatsPanel.add(Box.createVerticalStrut(4));
-        typeStatsPanel.add(statsTripByTypeLabel);
-        bottomPanel.add(typeStatsPanel);
-        bottomPanel.add(Box.createHorizontalStrut(10));
+        
+        JPanel typeStatsContent = new JPanel();
+        typeStatsContent.setLayout(new BoxLayout(typeStatsContent, BoxLayout.Y_AXIS));
+        typeStatsContent.setBackground(Color.WHITE);
+        typeStatsContent.add(statsCreatedByTypeLabel);
+        typeStatsContent.add(Box.createVerticalStrut(4));
+        typeStatsContent.add(statsActiveByTypeLabel);
+        typeStatsContent.add(Box.createVerticalStrut(4));
+        typeStatsContent.add(statsExitedByTypeLabel);
+        typeStatsContent.add(Box.createVerticalStrut(4));
+        typeStatsContent.add(statsAvgWaitByTypeLabel);
+        typeStatsContent.add(Box.createVerticalStrut(4));
+        typeStatsContent.add(statsAvgRoadByTypeLabel);
+        typeStatsContent.add(Box.createVerticalStrut(4));
+        typeStatsContent.add(statsTripByTypeLabel);
+        
+        JScrollPane typeStatsScroll = new JScrollPane(typeStatsContent);
+        typeStatsScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        typeStatsScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        typeStatsScroll.setPreferredSize(new Dimension(550, 160));
+        typeStatsPanel.add(typeStatsScroll);
+        typeStatsPanel.setMaximumSize(new Dimension(600, 200));
+        statsContainerPanel.add(typeStatsPanel);
+        statsContainerPanel.add(Box.createHorizontalStrut(10));
 
         // Section 3: Per-Crossroad Stats
         JPanel crossroadStatsPanel = createStatSection("Crossroad Stats");
@@ -198,11 +210,15 @@ public class Dashboard extends JFrame {
         statsPerCrossroadArea.setLineWrap(true);
         statsPerCrossroadArea.setWrapStyleWord(true);
         JScrollPane crossroadScroll = new JScrollPane(statsPerCrossroadArea);
-        crossroadScroll.setPreferredSize(new Dimension(180, 160));
+        crossroadScroll.setPreferredSize(new Dimension(200, 160));
         crossroadStatsPanel.add(crossroadScroll);
-        bottomPanel.add(crossroadStatsPanel);
+        crossroadStatsPanel.setMaximumSize(new Dimension(250, 200));
+        statsContainerPanel.add(crossroadStatsPanel);
 
-        add(bottomPanel, BorderLayout.SOUTH);
+        JScrollPane bottomScroll = new JScrollPane(statsContainerPanel);
+        bottomScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        bottomScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        add(bottomScroll, BorderLayout.SOUTH);
 
         // Animation timer
         new Timer(Config.TIMER_DELAY_MS, e -> {
