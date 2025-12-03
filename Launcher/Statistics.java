@@ -5,14 +5,6 @@ import Vehicle.Vehicle;
 import Vehicle.VehicleType;
 import java.util.*;
 
-/**
- * Holder for runtime statistics collected by the dashboard/simulator.
- *
- * <p>This class centralizes counters and time aggregates for vehicles,
- * providing thread-safe recording and snapshot helpers. It does not
- * perform any UI work — callers should query it and render values as
- * needed on the Swing EDT.</p>
- */
 public class Statistics {
     private int totalCreated = 0;
     private int totalExited = 0;
@@ -36,10 +28,6 @@ public class Statistics {
 
     private final Map<NodeEnum, Map<VehicleType, Integer>> passedByNodeByType = new EnumMap<>(NodeEnum.class);
 
-    /**
-     * Record that a vehicle was created.
-     * @param v created vehicle
-     */
     public synchronized void recordCreatedVehicle(Vehicle v) {
         if (v == null) return;
         this.totalCreated++;
@@ -47,10 +35,6 @@ public class Statistics {
         if (vt != null) this.createdByType.put(vt, this.createdByType.getOrDefault(vt, 0) + 1);
     }
 
-    /**
-     * Record that a vehicle exited the simulation.
-     * @param v exited vehicle
-     */
     public synchronized void recordExitedVehicle(Vehicle v) {
         if (v == null) return;
         this.totalExited++;
@@ -58,9 +42,6 @@ public class Statistics {
         if (vt != null) this.exitedByType.put(vt, this.exitedByType.getOrDefault(vt, 0) + 1);
     }
 
-    /**
-     * Record that a vehicle passed at a given node (for per-crossroad stats).
-     */
     public synchronized void recordPassedAtNode(NodeEnum node, Vehicle v) {
         if (node == null || v == null) return;
         Map<VehicleType, Integer> m = this.passedByNodeByType.get(node);
@@ -82,11 +63,6 @@ public class Statistics {
         return this.departTimestamps.remove(id);
     }
 
-    /**
-     * Record the entrance timestamp for a vehicle.
-     * @param id vehicle id
-     * @param timestamp epoch ms of entrance
-     */
     public synchronized void recordEntranceTimestamp(String id, long timestamp) {
         if (id == null) return;
         this.entranceTimestamps.put(id, timestamp);
@@ -113,9 +89,6 @@ public class Statistics {
         }
     }
 
-    /**
-     * Record full trip time and update per-type min/avg/max.
-     */
     public synchronized void recordTripTimeByType(Vehicle v) {
         if (v == null) return;
         String id = v.getId();
@@ -141,7 +114,6 @@ public class Statistics {
         this.waitCountByType.put(vt, this.waitCountByType.getOrDefault(vt, 0) + 1);
     }
 
-    // ----- getters for UI consumption -----
     public synchronized int getTotalCreated() { return totalCreated; }
     public synchronized int getTotalExited() { return totalExited; }
     public synchronized long getTotalTravelTimeMs() { return totalTravelTimeMs; }
@@ -167,9 +139,6 @@ public class Statistics {
         return copy;
     }
 
-    /**
-     * Returns average road time per vehicle type in seconds.
-     */
     public synchronized Map<VehicleType, Double> getAvgRoadByTypeSeconds() {
         Map<VehicleType, Double> out = new EnumMap<>(VehicleType.class);
         for (VehicleType vt : VehicleType.values()) {
@@ -181,10 +150,6 @@ public class Statistics {
         return out;
     }
 
-    /**
-     * Returns trip statistics (min, avg, max) per vehicle type in milliseconds.
-     * Each value is a long array: [min, avg, max]. If no samples, values are 0.
-     */
     public synchronized Map<VehicleType, long[]> getTripStatsMillis() {
         Map<VehicleType, long[]> out = new EnumMap<>(VehicleType.class);
         for (VehicleType vt : VehicleType.values()) {
