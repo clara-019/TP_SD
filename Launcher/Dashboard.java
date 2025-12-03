@@ -104,8 +104,9 @@ public class Dashboard extends JFrame {
         logsTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
         rightPanel.add(logsTitle, BorderLayout.NORTH);
 
-        this.logArea = makeTextArea(15, 30, new Font("Consolas", Font.PLAIN, 11), true, false);
-        JScrollPane logScroll = wrapInScroll(this.logArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        this.logArea = makeTextArea(15, 60, new Font("Consolas", Font.PLAIN, 11), false, false);
+        JScrollPane logScroll = wrapInScroll(this.logArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         rightPanel.add(logScroll, BorderLayout.CENTER);
 
         centerContainer.add(rightPanel, BorderLayout.EAST);
@@ -149,7 +150,8 @@ public class Dashboard extends JFrame {
         addLabelWithGap(typeStatsContent, statsAvgRoadByTypeLabel, 4);
         typeStatsContent.add(statsTripByTypeLabel);
 
-        JScrollPane typeStatsScroll = wrapInScroll(typeStatsContent, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        JScrollPane typeStatsScroll = wrapInScroll(typeStatsContent, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         typeStatsScroll.setPreferredSize(new Dimension(550, 160));
         typeStatsPanel.add(typeStatsScroll);
         typeStatsPanel.setMaximumSize(new Dimension(600, 200));
@@ -158,7 +160,8 @@ public class Dashboard extends JFrame {
 
         JPanel crossroadStatsPanel = createStatSection("Crossroad Stats");
         statsPerCrossroadArea = makeTextArea(7, 25, new Font("Consolas", Font.PLAIN, 10), true, false);
-        JScrollPane crossroadScroll = wrapInScroll(statsPerCrossroadArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        JScrollPane crossroadScroll = wrapInScroll(statsPerCrossroadArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         crossroadScroll.setPreferredSize(new Dimension(200, 160));
         crossroadStatsPanel.add(crossroadScroll);
         crossroadStatsPanel.setMaximumSize(new Dimension(250, 200));
@@ -243,7 +246,8 @@ public class Dashboard extends JFrame {
     private JTextArea makeTextArea(int rows, int cols, Font font, boolean lineWrap, boolean editable) {
         JTextArea ta = new JTextArea(rows, cols);
         ta.setEditable(editable);
-        if (font != null) ta.setFont(font);
+        if (font != null)
+            ta.setFont(font);
         ta.setLineWrap(lineWrap);
         ta.setWrapStyleWord(true);
         return ta;
