@@ -6,21 +6,26 @@ import Vehicle.VehicleType;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 
+/**
+ * Visual representation of a vehicle used by the Dashboard renderer.
+ * <p>
+ * A VehicleSprite holds the vehicle identity, its current position and
+ * animation state used to interpolate movement between points on the map.
+ * Instances are mutated by the UI thread (animation timer) and read by the
+ * renderer.
+ */
 public class VehicleSprite {
     public final String id;
     public final Vehicle vehicle;
-
     public double x, y;
 
     private double startX, startY, tx, ty;
     private long startTime;
     private long durationMs;
     private boolean moving = false;
-    private boolean removeWhenArrives = false;
+    private boolean remove = false;
 
     private double angle = 0.0;
-    private boolean hasFaceTarget = false;
-    private double faceX = 0.0, faceY = 0.0;
 
     private static final int LENGTH = 28;
     private static final int WIDTH = 14;
@@ -29,6 +34,14 @@ public class VehicleSprite {
     private static final Color MOTOR_FILL = new Color(255, 140, 0);
     private static final Color BORDER = new Color(30, 30, 30, 160);
 
+    /**
+     * Create a new sprite anchored at the given coordinates.
+     *
+     * @param id      textual id displayed on the map
+     * @param vehicle domain vehicle object (provides `VehicleType` for styling)
+     * @param x       initial x coordinate (map space)
+     * @param y       initial y coordinate (map space)
+     */
     public VehicleSprite(String id, Vehicle vehicle, double x, double y) {
         this.id = id;
         this.vehicle = vehicle;
@@ -40,45 +53,65 @@ public class VehicleSprite {
         this.ty = y;
     }
 
+    /**
+     * Start moving the sprite toward the target coordinates.
+     * <p>
+     * If the target is effectively the same as the current position the sprite will
+     * not be marked as moving.
+     *
+     * @param tx         target x coordinate
+     * @param ty         target y coordinate
+     * @param durationMs animation duration in milliseconds (values &lt;= 0 are
+     *                   treated as 1ms)
+     */
     public void setTarget(double tx, double ty, long durationMs) {
+        double dx = tx - x;
+        double dy = ty - y;
+        if (Math.hypot(dx, dy) <= 1e-6) {
+            this.moving = false;
+            return;
+        }
+
         this.startX = this.x;
         this.startY = this.y;
         this.tx = tx;
         this.ty = ty;
         this.startTime = System.currentTimeMillis();
         this.durationMs = Math.max(1, durationMs);
-        this.moving = true;
 
+        this.moving = true;
         this.angle = Math.atan2(ty - startY, tx - startX);
     }
 
-    public void setFaceTarget(double fx, double fy) {
-        this.faceX = fx;
-        this.faceY = fy;
-        this.hasFaceTarget = true;
-    }
-
-    public void clearFaceTarget() {
-        this.hasFaceTarget = false;
-    }
-
+    /**
+     * Mark this sprite for removal once it reaches its target.
+     * <p>
+     * The renderer / controller will check {@link #shouldRemoveNow()} to
+     * actually remove the sprite from the model.
+     */
     public void markForRemoval() {
-        this.removeWhenArrives = true;
+        this.remove = true;
     }
 
+    /**
+     * Returns true if the sprite was marked to be removed.
+     */
     public boolean shouldRemoveNow() {
-        return this.removeWhenArrives;
+        return this.remove;
     }
 
+    /**
+     * Advance the internal animation state based on the current time.
+     * <p>
+     * This method updates {@code x}, {@code y} and {@code angle} as the
+     * sprite interpolates toward the target. It returns {@code true} when a
+     * position update occurred (including the final arrival), or {@code
+     * false} when the sprite was not moving.
+     *
+     * @return {@code true} if the sprite position was updated
+     */
     public boolean updatePosition() {
         if (!moving) {
-            if (hasFaceTarget) {
-                double desired = Math.atan2(faceY - y, faceX - x);
-                if (Math.abs(angle - desired) > 1e-3) {
-                    angle = desired;
-                    return true;
-                }
-            }
             return false;
         }
 
@@ -88,11 +121,7 @@ public class VehicleSprite {
             x = tx;
             y = ty;
             moving = false;
-            if (hasFaceTarget) {
-                angle = Math.atan2(faceY - y, faceX - x);
-            } else {
-                angle = Math.atan2(ty - startY, tx - startX);
-            }
+            angle = Math.atan2(ty - startY, tx - startX);
             return true;
         }
 
@@ -110,10 +139,23 @@ public class VehicleSprite {
         return true;
     }
 
+    /**
+     * Utility clamp used by the interpolation logic.
+     */
     private static double clamp(double v, double a, double b) {
         return Math.max(a, Math.min(b, v));
     }
 
+    /**
+     * Draw the sprite onto the provided Graphics2D surface.
+     * <p>
+     * The method uses the vehicle type (car, truck, motorcycle) to choose a
+     * fill color and draws a small rounded rectangle rotated according to
+     * the current {@code angle}. The vehicle {@code id} is rendered above
+     * the sprite.
+     *
+     * @param g2 graphics context (must not be null)
+     */
     public void draw(Graphics2D g2) {
         VehicleType vt = vehicle.getType();
         if (vt == null)

@@ -11,6 +11,17 @@ import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.util.*;
 
+/**
+ * Swing component that renders the static map (roads and nodes) and
+ * the dynamic vehicle sprites on top.
+ * <p>
+ * The renderer caches a static image of roads and nodes for the
+ * current component size to avoid redrawing them on every frame.
+ * Dynamic elements (vehicle sprites and traffic light overlays) are
+ * painted on each {@link #paintComponent(Graphics)} call. The renderer
+ * listens for component resize events to invalidate the static cache
+ * and recompute node positions and road geometries.
+ */
 public class MapRenderer extends JPanel {
 
     private static final int NODE_W = 80;
@@ -29,6 +40,12 @@ public class MapRenderer extends JPanel {
     private static final Stroke ROAD_STROKE = new BasicStroke(6, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
     private static final Color ROAD_COLOR = new Color(56, 56, 56);
 
+    /**
+     * Create a new MapRenderer backed by the given {@link MapModel}.
+     *
+     * @param model the shared model containing node positions, sprites and traffic
+     *              lights
+     */
     public MapRenderer(MapModel model) {
         this.nodePositions = model.getNodePositions();
         this.sprites = model.getSprites();
@@ -72,12 +89,24 @@ public class MapRenderer extends JPanel {
         });
     }
 
+    /**
+     * Mark the internal static map cache as dirty so it will be rebuilt
+     * on the next paint. This method is synchronized with the cache
+     * access to ensure thread-safety with the painting code.
+     */
     private void markMapDirty() {
         synchronized (this) {
             staticMapCache = null;
         }
     }
 
+    /**
+     * Paint the map component.
+     * <p>
+     * This method draws the cached static map image (rebuilding it if
+     * the component size changed), overlays traffic light indicators,
+     * and then draws all vehicle sprites from the shared sprite map.
+     */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -108,6 +137,16 @@ public class MapRenderer extends JPanel {
         g2.dispose();
     }
 
+    /**
+     * Build the cached static map image at the specified size.
+     * <p>
+     * The image contains a white background, the road network and the
+     * node shapes/labels. The generated image is stored in
+     * {@code staticMapCache} and used by {@link #paintComponent}.
+     *
+     * @param w target image width in pixels
+     * @param h target image height in pixels
+     */
     private void buildStaticMap(int w, int h) {
         if (w <= 0 || h <= 0)
             return;
@@ -127,6 +166,12 @@ public class MapRenderer extends JPanel {
         staticMapCache = img;
     }
 
+    /**
+     * Recompute logical node positions for the current component size.
+     *
+     * @param panelW panel width in pixels
+     * @param panelH panel height in pixels
+     */
     private void recomputeNodePositions(int panelW, int panelH) {
         int w = Math.max(600, panelW);
         int h = Math.max(400, panelH);
@@ -156,6 +201,10 @@ public class MapRenderer extends JPanel {
         }
     }
 
+    /**
+     * Compute the geometric start/end points for every road based on
+     * current node positions.
+     */
     private void computeRoadGeometries() {
         roadGeom.clear();
 
@@ -175,6 +224,21 @@ public class MapRenderer extends JPanel {
         }
     }
 
+    /**
+     * Project a point from the node center to the node border along the
+     * line toward another point.
+     * <p>
+     * Given a rectangular node centered at {@code center} with the
+     * provided {@code width}/{@code height}, this returns the point on
+     * the rectangle border that lies on the line from {@code center}
+     * toward {@code toward}.
+     *
+     * @param center the center point of the node
+     * @param toward the point being approached
+     * @param width  node width in pixels
+     * @param height node height in pixels
+     * @return a point positioned on the node border
+     */
     private Point projectToNodeBorder(Point center, Point toward, int width, int height) {
         double dx = toward.x - center.x;
         double dy = toward.y - center.y;
@@ -196,43 +260,25 @@ public class MapRenderer extends JPanel {
                 center.y + (int) Math.round(dy * scale));
     }
 
-    private static final class RoadGeom {
-        final Point from, to;
-
-        RoadGeom(Point from, Point to) {
-            this.from = from;
-            this.to = to;
-        }
-    }
-
+    /**
+     * Draw static road lines and arrows into the provided graphics
+     * context. This method is used while building the static map image.
+     */
     private void drawRoadsStatic(Graphics2D g2) {
         g2.setStroke(ROAD_STROKE);
         g2.setColor(ROAD_COLOR);
 
         for (RoadGeom rg : roadGeom.values()) {
             g2.drawLine(rg.from.x, rg.from.y, rg.to.x, rg.to.y);
-            drawArrow(g2, rg);
         }
     }
 
-    private void drawArrow(Graphics2D g2, RoadGeom rg) {
-        int x1 = rg.from.x, y1 = rg.from.y;
-        int x2 = rg.to.x, y2 = rg.to.y;
-
-        double angle = Math.atan2(y2 - y1, x2 - x1);
-        int size = 12;
-
-        int xA = x2 - (int) (size * Math.cos(angle - 0.4));
-        int yA = y2 - (int) (size * Math.sin(angle - 0.4));
-
-        int xB = x2 - (int) (size * Math.cos(angle + 0.4));
-        int yB = y2 - (int) (size * Math.sin(angle + 0.4));
-
-        Polygon arrow = new Polygon(new int[] { x2, xA, xB }, new int[] { y2, yA, yB }, 3);
-        g2.setColor(new Color(200, 200, 200));
-        g2.fillPolygon(arrow);
-    }
-
+    /**
+     * Draw all nodes (entrances, exits and crossroads) and their labels.
+     * <p>
+     * Node positions are read from the synchronized {@code nodePositions}
+     * map.
+     */
     private void drawNodes(Graphics2D g2) {
         synchronized (nodePositions) {
             for (Map.Entry<NodeEnum, Point> e : nodePositions.entrySet()) {
@@ -265,18 +311,18 @@ public class MapRenderer extends JPanel {
                 g2.setFont(g2.getFont().deriveFont(Font.BOLD, 12f));
                 FontMetrics fm = g2.getFontMetrics();
                 String name = node.name();
-                if (node.getType() == NodeType.CROSSROAD) {
-                    // draw label centered inside the node box
-                    int textW = fm.stringWidth(name);
-                    int baseline = (int) Math.round(p.y + (fm.getAscent() - fm.getDescent()) / 2.0);
-                    g2.drawString(name, p.x - textW / 2, baseline);
-                } else {
-                    g2.drawString(name, p.x - fm.stringWidth(name) / 2, y - 6);
-                }
+                int textW = fm.stringWidth(name);
+                int baseline = (int) Math.round(p.y + (fm.getAscent() - fm.getDescent()) / 2.0);
+                g2.drawString(name, p.x - textW / 2, baseline);
+
             }
         }
     }
 
+    /**
+     * Draw the traffic light indicators and populate the clickable
+     * {@code signalRects} map used by the mouse listener.
+     */
     private void drawTrafficLightsOverlay(Graphics2D g2) {
         signalRects.clear();
 
@@ -313,6 +359,30 @@ public class MapRenderer extends JPanel {
 
             g2.setColor(isRed ? new Color(40, 80, 40) : Color.GREEN);
             g2.fillOval(x + 2, y + 15, 10, 10);
+        }
+    }
+
+    /**
+     * Simple immutable container that holds the projected start and end
+     * points for a road segment.
+     * <p>
+     * The renderer computes these points by projecting node centers to
+     * their border and stores a {@code RoadGeom} per {@link RoadEnum} so
+     * painting code can draw road centerlines and overlays without
+     * recomputing geometry repeatedly.
+     */
+    private static final class RoadGeom {
+        final Point from, to;
+
+        /**
+         * Create a new RoadGeom with the provided endpoints.
+         *
+         * @param from projected start point on the origin node border
+         * @param to   projected end point on the destination node border
+         */
+        RoadGeom(Point from, Point to) {
+            this.from = from;
+            this.to = to;
         }
     }
 }

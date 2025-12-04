@@ -1,28 +1,31 @@
 package Launcher;
 
-import Node.NodeEnum;
-import Node.NodeType;
+import Node.*;
 import Vehicle.VehicleType;
 import java.awt.*;
 import java.util.*;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import javax.swing.Timer;
 
+/**
+ * Dashboard is the main Swing window for the Traffic Simulator application.
+ * <p>
+ * Responsibilities:
+ * - Display the map renderer and animated vehicle sprites.
+ * - Provide controls to start/stop the simulation.
+ * - Show logs and a variety of runtime statistics (overall, by vehicle type,
+ * and per-crossroad counts).
+ * <p>
+ * The dashboard owns a {@link MapModel} and a {@link DashboardController}
+ * which encapsulates simulator logic. It drives a short-period
+ * {@link javax.swing.Timer}
+ * to animate {@link VehicleSprite} objects and repaints the {@link MapRenderer}
+ * only when sprite positions change.
+ */
 public class Dashboard extends JFrame {
     public static final int TIMER_DELAY_MS = 30;
-    
 
     private final Map<String, VehicleSprite> sprites;
-    private final Map<NodeEnum, Point> nodePositions;
     private final MapModel model;
 
     private DashboardController controller;
@@ -46,17 +49,22 @@ public class Dashboard extends JFrame {
     private JButton startBtn;
     private JButton stopBtn;
 
+    /**
+     * Create and initialize the dashboard window.
+     * <p>
+     * The constructor builds the UI, creates the model and controller,
+     * attaches listeners and starts the internal sprite timer. The window is
+     * configured but not shown — callers should call {@code setVisible(true)}.
+     */
     public Dashboard() {
         super("Traffic Simulator Dashboard");
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setupWindowCloseHandler();
+        setupWindowClose();
         setSize(1400, 950);
         setLayout(new BorderLayout());
 
         this.model = new MapModel();
-
-        this.sprites = model.getSprites();
-        this.nodePositions = model.getNodePositions();
+        this.sprites = this.model.getSprites();
 
         createTopPanel();
         createCenterContainer();
@@ -66,6 +74,14 @@ public class Dashboard extends JFrame {
         startSpriteTimer();
     }
 
+    /**
+     * Build and attach the top control panel.
+     * <p>
+     * The top panel contains the primary control buttons (Start/Stop)
+     * on the left and a status label on the right. Buttons are created
+     * using {@link UiUtils} helper methods so they follow a consistent
+     * application style.
+     */
     private void createTopPanel() {
         JPanel top = new JPanel(new BorderLayout());
         top.setBackground(new Color(34, 40, 49));
@@ -89,6 +105,14 @@ public class Dashboard extends JFrame {
         add(top, BorderLayout.NORTH);
     }
 
+    /**
+     * Create the central UI area which contains the map renderer and the
+     * log panel.
+     * <p>
+     * The {@link MapRenderer} is placed at the center and a scrollable
+     * log area is placed to the right. The log area is produced with
+     * {@link UiUtils#makeTextArea} and wrapped in a {@link JScrollPane}.
+     */
     private void createCenterContainer() {
         JPanel centerContainer = new JPanel(new BorderLayout());
 
@@ -114,6 +138,14 @@ public class Dashboard extends JFrame {
         add(centerContainer, BorderLayout.CENTER);
     }
 
+    /**
+     * Create the bottom statistics container.
+     * <p>
+     * This method creates three sections: overall statistics, per-vehicle
+     * type statistics and per-crossroad counters. Each section is placed
+     * in a small, scrollable region so content can grow without breaking
+     * the layout.
+     */
     private void createStatsContainer() {
         JPanel statsContainerPanel = new JPanel();
         statsContainerPanel.setLayout(new BoxLayout(statsContainerPanel, BoxLayout.X_AXIS));
@@ -175,10 +207,16 @@ public class Dashboard extends JFrame {
         add(bottomScroll, BorderLayout.SOUTH);
     }
 
+    /**
+     * Instantiate the {@link DashboardController} and wire callbacks.
+     * <p>
+     * The controller is passed references to the model and renderer, and is given
+     * method references for logging, updating UI labels, and updating the status
+     * label text and color. These callbacks allow the controller to update the
+     * UI without keeping UI-specific logic inside the controller.
+     */
     private void createController() {
-        this.controller = new DashboardController(this.model, this.sprites, this.nodePositions,
-                this.renderer,
-                this::log,
+        this.controller = new DashboardController(this.model, this.renderer, this::log,
                 this::updateStatsLabels,
                 s -> {
                     if (this.statusLabel != null)
@@ -190,13 +228,25 @@ public class Dashboard extends JFrame {
                 });
     }
 
+    /**
+     * Attach action listeners to Start/Stop buttons.
+     * <p>
+     * The listeners call into the controller to start or request a
+     * graceful stop of the simulation.
+     */
     private void attachControlListeners() {
-        if (startBtn != null)
-            startBtn.addActionListener(e -> controller.startSimulation());
-        if (stopBtn != null)
-            stopBtn.addActionListener(e -> controller.requestGracefulStop());
+        this.startBtn.addActionListener(e -> this.controller.startSimulation());
+        this.stopBtn.addActionListener(e -> this.controller.requestGracefulStop());
     }
 
+    /**
+     * Start a Swing {@link Timer} that advances and repaints vehicle sprites.
+     * <p>
+     * On every tick the method iterates the {@code sprites} map (synchronized)
+     * and calls {@link VehicleSprite#updatePosition} to advance each sprite.
+     * Sprites that report they should be removed are deleted from the map.
+     * The {@link MapRenderer} is repainted only when a change occurs.
+     */
     private void startSpriteTimer() {
         new Timer(TIMER_DELAY_MS, e -> {
             boolean changed = false;
@@ -213,11 +263,18 @@ public class Dashboard extends JFrame {
                 }
             }
             if (changed)
-                renderer.repaint();
+                this.renderer.repaint();
         }).start();
     }
 
-    private void setupWindowCloseHandler() {
+    /**
+     * Configure window close.
+     * <p>
+     * When the user closes the window this listener attempts to shut the
+     * simulator down via the controller, disposes the window and exits the
+     * JVM. Any exceptions during shutdown are logged to the dashboard log.
+     */
+    private void setupWindowClose() {
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
@@ -235,34 +292,32 @@ public class Dashboard extends JFrame {
         });
     }
 
+    /**
+     * Refresh all statistics labels using the latest {@link Statistics}.
+     * <p>
+     * This method reads current statistics from the controller and from
+     * the in-memory {@code sprites} map (synchronized) then updates the
+     * visible labels and text areas.
+     */
     private void updateStatsLabels() {
         int active;
-        synchronized (sprites) {
-            active = sprites.size();
+        synchronized (this.sprites) {
+            active = this.sprites.size();
         }
-
         Statistics stats = (controller == null) ? new Statistics() : controller.getStatistics();
-        int created = stats.getTotalCreated();
-        int exited = stats.getTotalExited();
-        long[] overallTrip = stats.getOverallTripStatsMillis();
-        double overallAvg = overallTrip[1] / 1000.0;
 
-        if (statsActiveLabel != null)
-            statsActiveLabel.setText("Active: " + active);
-        if (statsCreatedLabel != null)
-            statsCreatedLabel.setText("Created: " + created);
-        if (statsExitedLabel != null)
-            statsExitedLabel.setText("Exited: " + exited);
-        if (statsAvgTripLabel != null)
-            statsAvgTripLabel.setText(String.format("Avg trip (s): %.2f", overallAvg));
+        statsActiveLabel.setText("Active: " + active);
+        statsCreatedLabel.setText("Created: " + stats.getTotalCreated());
+        statsExitedLabel.setText("Exited: " + stats.getTotalExited());
+        statsAvgTripLabel.setText(String.format("Avg trip (s): %.2f", stats.getOverallTripStatsMillis()[1] / 1000.0));
 
-        Map<VehicleType, Integer> createdMap = stats.getCreatedByType();
-        Map<VehicleType, Integer> exitedMap = stats.getExitedByType();
-        UiUtils.setLabelText(statsCreatedByTypeLabel, "Created by type: " + UiUtils.joinCounts(createdMap));
+        UiUtils.setLabelText(statsCreatedByTypeLabel,
+                "Created by type: " + UiUtils.joinCounts(stats.getCreatedByType()));
+        UiUtils.setLabelText(statsExitedByTypeLabel, "Exited by type: " + UiUtils.joinCounts(stats.getExitedByType()));
 
         Map<VehicleType, Integer> activeMap = new EnumMap<>(VehicleType.class);
-        synchronized (sprites) {
-            for (VehicleSprite vs : sprites.values()) {
+        synchronized (this.sprites) {
+            for (VehicleSprite vs : this.sprites.values()) {
                 VehicleType vt = vs.vehicle == null ? null : vs.vehicle.getType();
                 if (vt == null)
                     continue;
@@ -270,17 +325,13 @@ public class Dashboard extends JFrame {
             }
         }
         UiUtils.setLabelText(statsActiveByTypeLabel, "Active by type: " + UiUtils.joinCounts(activeMap));
-        UiUtils.setLabelText(statsExitedByTypeLabel, "Exited by type: " + UiUtils.joinCounts(exitedMap));
 
-        Map<VehicleType, Long> avgWaitMs = stats.getAvgWaitByType();
-        UiUtils.setLabelText(statsAvgWaitByTypeLabel, "Avg wait (s) by type: " + UiUtils.formatAvgWait(avgWaitMs));
-
-        Map<VehicleType, Double> avgRoad = stats.getAvgRoadByTypeSeconds();
-        UiUtils.setLabelText(statsAvgRoadByTypeLabel, "Avg road (s) by type: " + UiUtils.formatAvgRoad(avgRoad));
-
-        Map<VehicleType, long[]> tripStats = stats.getTripStatsMillis();
+        UiUtils.setLabelText(statsAvgWaitByTypeLabel,
+                "Avg wait (s) by type: " + UiUtils.formatAvgWait(stats.getAvgWaitByType()));
+        UiUtils.setLabelText(statsAvgRoadByTypeLabel,
+                "Avg road (s) by type: " + UiUtils.formatAvgRoad(stats.getAvgRoadByTypeSeconds()));
         UiUtils.setLabelText(statsTripByTypeLabel,
-                "Trip min/avg/max (s) by type: " + UiUtils.formatTripStats(tripStats));
+                "Trip min/avg/max (s) by type: " + UiUtils.formatTripStats(stats.getTripStatsMillis()));
 
         StringBuilder perCross = new StringBuilder();
         Map<NodeEnum, Map<VehicleType, Integer>> perNode = stats.getPassedByNodeByType();
@@ -300,6 +351,15 @@ public class Dashboard extends JFrame {
 
     }
 
+    /**
+     * Append a timestamped message to the log area on the Swing EDT.
+     * <p>
+     * Formatting and UI updates are performed via
+     * {@link SwingUtilities#invokeLater} to ensure thread-safety. If the log area
+     * has been disposed or is null the call becomes a no-op.
+     *
+     * @param s the message to append (must not be null)
+     */
     private void log(String s) {
         SwingUtilities.invokeLater(() -> {
             if (logArea != null) {
@@ -310,6 +370,14 @@ public class Dashboard extends JFrame {
         });
     }
 
+    /**
+     * Launch the dashboard application.
+     * <p>
+     * Starts the Swing event thread and shows the dashboard window.
+     * This is a convenient entry point for running the simulator from the JVM.
+     *
+     * @param args command-line arguments (ignored)
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Dashboard().setVisible(true));
     }

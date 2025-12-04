@@ -1,15 +1,22 @@
 package Launcher;
 
-import Node.NodeEnum;
-import Node.NodeType;
+import Node.*;
 import Traffic.RoadEnum;
 
 import java.awt.Point;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 
+/**
+ * Model holding the visual and traffic-related state for the dashboard.
+ * <p>
+ * This class provides thread-safe access to the set of active
+ * {@link VehicleSprite} objects, node positions, traffic light states,
+ * and per-road signal queues and statistics. It contains helpers to
+ * enqueue sprites into signal queues, remove sprites, compact queues
+ * visually and compute queue positions in front of destination nodes.
+ */
 public class MapModel {
     public static final double NODE_HALF_WIDTH = 44.0;
     public static final double NODE_HALF_HEIGHT = 28.0;
@@ -26,6 +33,14 @@ public class MapModel {
     private final Map<RoadEnum, Deque<VehicleSprite>> signalQueues;
     private final Map<RoadEnum, QueueStats> queueStats;
 
+    /**
+     * Create a new MapModel and initialize per-road structures.
+     *
+     * <p>
+     * Traffic lights, signal queues and queue statistics are created
+     * for roads that lead to crossroads. Collections are chosen to be
+     * safe for concurrent access from simulator and UI threads.
+     */
     public MapModel() {
         this.sprites = new ConcurrentHashMap<>();
         this.nodePositions = java.util.Collections.synchronizedMap(new EnumMap<>(NodeEnum.class));
@@ -35,33 +50,70 @@ public class MapModel {
 
         for (RoadEnum r : RoadEnum.values()) {
             if (r.getDestination().getType() == NodeType.CROSSROAD) {
-                trafficLights.put(r, "RED");
-                signalQueues.put(r, new ConcurrentLinkedDeque<>());
-                queueStats.put(r, new QueueStats());
+                this.trafficLights.put(r, "RED");
+                this.signalQueues.put(r, new ConcurrentLinkedDeque<>());
+                this.queueStats.put(r, new QueueStats());
             }
         }
     }
 
+    /**
+     * Return the live sprite map keyed by vehicle id.
+     *
+     * @return map of id &rarr; {@link VehicleSprite}
+     */
     public Map<String, VehicleSprite> getSprites() {
-        return sprites;
+        return this.sprites;
     }
 
+    /**
+     * Return a synchronized map of node enum to canvas positions.
+     *
+     * @return map of {@link NodeEnum} to {@link Point}
+     */
     public Map<NodeEnum, Point> getNodePositions() {
-        return nodePositions;
+        return this.nodePositions;
     }
 
+    /**
+     * Return the current traffic light states for each road.
+     *
+     * @return map of {@link RoadEnum} to signal color string (e.g. "RED")
+     */
     public Map<RoadEnum, String> getTrafficLights() {
-        return trafficLights;
+        return this.trafficLights;
     }
 
+    /**
+     * Return the per-road signal queues holding sprites waiting at signals.
+     *
+     * @return map of {@link RoadEnum} to deque of {@link VehicleSprite}
+     */
     public Map<RoadEnum, Deque<VehicleSprite>> getSignalQueues() {
-        return signalQueues;
+        return this.signalQueues;
     }
 
+    /**
+     * Return queue sampling statistics for each road.
+     *
+     * @return map of {@link RoadEnum} to {@link QueueStats}
+     */
     public Map<RoadEnum, QueueStats> getQueueStats() {
-        return queueStats;
+        return this.queueStats;
     }
 
+    /**
+     * Enqueue a sprite to the signal queue for the given road.
+     * <p>
+     * If the sprite is already present in the queue it will not be
+     * duplicated; instead the existing index is used to compute the
+     * visual target point. The sprite is moved (animated) to the
+     * computed traffic point in front of the destination node. Queue
+     * sampling statistics are updated when a new sprite is appended.
+     *
+     * @param road the road whose signal queue to use
+     * @param s    the sprite to enqueue
+     */
     public void enqueueToSignal(RoadEnum road, VehicleSprite s) {
         if (road == null || s == null)
             return;
@@ -83,7 +135,7 @@ public class MapModel {
             Point origin = nodePositions.get(road.getOrigin());
             Point dest = nodePositions.get(road.getDestination());
             Point signal = computeTrafficPoint(origin, dest, index);
-            s.setFaceTarget(dest.x, dest.y);
+
             s.setTarget(signal.x, signal.y, SIGNAL_ARRIVAL_ANIM_MS);
             LOGGER.fine(() -> "Enqueued sprite " + s.id + " to " + road + " index=" + index);
             if (!found) {
@@ -94,6 +146,11 @@ public class MapModel {
         }
     }
 
+    /**
+     * Remove a sprite with the given id from all signal queues.
+     *
+     * @param id the sprite (vehicle) id to remove
+     */
     public void removeSpriteFromAllQueues(String id) {
         if (id == null)
             return;
@@ -112,6 +169,12 @@ public class MapModel {
         }
     }
 
+    /**
+     * Compact the visual queue for a road by repositioning each sprite to
+     * its canonical traffic point based on the current queue order.
+     *
+     * @param road the road whose queue should be compacted
+     */
     public void compactQueue(RoadEnum road) {
         if (road == null)
             return;
@@ -137,6 +200,15 @@ public class MapModel {
         }
     }
 
+    /**
+     * Compute the on-canvas point where queued vehicles should stop in
+     * front of the destination node.
+     *
+     * @param origin the origin node canvas point
+     * @param dest   the destination node canvas point
+     * @param index  the zero-based position in the queue (0 = first)
+     * @return the computed canvas point where the sprite should be positioned
+     */
     public static Point computeTrafficPoint(Point origin, Point dest, int index) {
         if (origin == null || dest == null)
             return new Point(0, 0);

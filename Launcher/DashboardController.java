@@ -1,13 +1,10 @@
 package Launcher;
 
 import Event.Event;
-import Event.SignalChangeEvent;
-import Event.VehicleEvent;
-import Event.EventType;
+import Event.*;
 import Node.NodeEnum;
 import Traffic.RoadEnum;
-import Vehicle.Vehicle;
-import Vehicle.VehicleType;
+import Vehicle.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,9 +13,18 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
+/**
+ * Controller coordinating the simulator and the dashboard UI.
+ * <p>
+ * This class mediates between the {@link Simulator}, the UI-facing
+ * model ({@link MapModel}), and the visual components such as
+ * {@link MapRenderer} and {@code VehicleSprite} instances. It consumes
+ * simulator {@link Event}s from a blocking queue, updates the
+ * {@link Statistics} object and the sprite map, and invokes UI callbacks
+ * (logging, status and stats updates) on the Swing EDT where appropriate.
+ */
 public class DashboardController {
     private static final Logger LOGGER = Logger.getLogger(DashboardController.class.getName());
 
@@ -53,12 +59,23 @@ public class DashboardController {
     private final Consumer<String> statusTextCb;
     private final Consumer<Color> statusColorCb;
 
-    public DashboardController(MapModel model, Map<String, VehicleSprite> sprites, Map<NodeEnum, Point> nodePositions,
-            MapRenderer renderer, Consumer<String> logCb, Runnable updateStatsCb, Consumer<String> statusTextCb,
-            Consumer<Color> statusColorCb) {
+    /**
+     * Create a new DashboardController.
+     *
+     * @param model         the shared {@link MapModel} containing sprites and node
+     *                      positions
+     * @param renderer      the renderer used to request repaints
+     * @param logCb         callback to append messages to the dashboard log (called
+     *                      on calling thread)
+     * @param updateStatsCb callback to refresh UI statistics
+     * @param statusTextCb  callback to update the status label text
+     * @param statusColorCb callback to update the status label color
+     */
+    public DashboardController(MapModel model, MapRenderer renderer, Consumer<String> logCb, Runnable updateStatsCb,
+            Consumer<String> statusTextCb, Consumer<Color> statusColorCb) {
         this.model = model;
-        this.sprites = sprites;
-        this.nodePositions = nodePositions;
+        this.sprites = this.model.getSprites();
+        this.nodePositions = this.model.getNodePositions();
         this.renderer = renderer;
 
         this.logCb = logCb;
@@ -71,20 +88,27 @@ public class DashboardController {
         }
     }
 
+    /**
+     * Return the current {@link Statistics} object maintained by the
+     * controller.
+     *
+     * @return the statistics object
+     */
     public Statistics getStatistics() {
-        return stats;
+        return this.stats;
     }
 
+    /**
+     * Start the simulator and the background event consumer.
+     */
     public synchronized void startSimulation() {
         if (this.simulator != null && this.simulator.isRunning()) {
             logCb.accept("Simulator already running");
             return;
         }
 
-        if (this.renderer != null) {
-            this.renderer.revalidate();
-            this.renderer.repaint();
-        }
+        this.renderer.revalidate();
+        this.renderer.repaint();
 
         this.simulator = new Simulator();
         this.eventQueue = this.simulator.getEventQueue();
@@ -107,6 +131,9 @@ public class DashboardController {
         scheduleAutoStopTimer();
     }
 
+    /**
+     * Stop the simulator immediately and clear runtime state.
+     */
     public synchronized void stopSimulation() {
         if (this.simulator != null) {
             try {
@@ -134,34 +161,35 @@ public class DashboardController {
             this.sprites.clear();
         }
 
-        if (this.renderer != null) {
-            SwingUtilities.invokeLater(this.renderer::repaint);
-        }
-
+        SwingUtilities.invokeLater(this.renderer::repaint);
         logCb.accept("Simulator stopped");
     }
 
+    /**
+     * Request a graceful shutdown: stop producing new vehicles and wait
+     * for currently moving vehicles and pending events to finish.
+     */
     public void requestGracefulStop() {
-        if (simulator == null || !simulator.isRunning()) {
+        if (this.simulator == null || !this.simulator.isRunning()) {
             logCb.accept("Simulator is not running");
             return;
         }
-        if (!gracefulStopping.compareAndSet(false, true)) {
+        if (!this.gracefulStopping.compareAndSet(false, true)) {
             logCb.accept("Graceful stop already in progress");
             return;
         }
 
         try {
-            simulator.stopEntranceProcesses();
+            this.simulator.stopEntranceProcesses();
         } catch (Exception ex) {
             LOGGER.log(Level.WARNING, "Error requesting graceful stop", ex);
             logCb.accept("Error requesting graceful stop: " + ex.getMessage());
         }
 
-        statusTextCb.accept("STOPPING (waiting vehicles...) ");
-        statusColorCb.accept(new Color(200, 120, 0));
+        this.statusTextCb.accept("STOPPING (waiting vehicles...) ");
+        this.statusColorCb.accept(new Color(200, 120, 0));
 
-        executor.execute(() -> {
+        this.executor.execute(() -> {
             try {
                 while (true) {
                     boolean spritesEmpty;
@@ -176,18 +204,21 @@ public class DashboardController {
                 }
                 SwingUtilities.invokeLater(() -> {
                     stopSimulation();
-                    gracefulStopping.set(false);
+                    this.gracefulStopping.set(false);
                 });
             } catch (InterruptedException ignored) {
-                gracefulStopping.set(false);
+                this.gracefulStopping.set(false);
                 Thread.currentThread().interrupt();
             } catch (Exception ex) {
-                gracefulStopping.set(false);
+                this.gracefulStopping.set(false);
                 LOGGER.log(Level.WARNING, "Graceful stop waiter failed", ex);
             }
         });
     }
 
+    /**
+     * Start a background task that consumes events from the simulator queue.
+     */
     private void startEventConsumer() {
         stopEventConsumer();
 
@@ -214,6 +245,9 @@ public class DashboardController {
         this.eventConsumerFuture = executor.submit(consumerTask);
     }
 
+    /**
+     * Stop and cancel the background event consumer task if running.
+     */
     private void stopEventConsumer() {
         if (this.eventConsumerFuture != null && !this.eventConsumerFuture.isDone()) {
             this.eventConsumerFuture.cancel(true);
@@ -221,6 +255,10 @@ public class DashboardController {
         }
     }
 
+    /**
+     * Schedule a one-shot auto-stop timer that stops the simulator after
+     * a configured delay.
+     */
     private void scheduleAutoStopTimer() {
         if (this.autoStopTimer != null && this.autoStopTimer.isRunning()) {
             this.autoStopTimer.stop();
@@ -228,12 +266,15 @@ public class DashboardController {
         int delay = (int) AUTO_STOP_MS;
         this.autoStopTimer = new javax.swing.Timer(delay, e -> {
             logCb.accept("Auto-stop: elapsed — requesting graceful stop.");
-            requestGracefulStop();
+            stopSimulation();
         });
         this.autoStopTimer.setRepeats(false);
         this.autoStopTimer.start();
     }
 
+    /**
+     * Drain and discard all pending events from the simulator event queue.
+     */
     private void clearEventQueue() {
         if (this.eventQueue == null)
             return;
@@ -241,10 +282,16 @@ public class DashboardController {
         this.eventQueue.drainTo(drained);
     }
 
+    /**
+     * Handle a single {@link Event} produced by the simulator.
+     * <p>
+     * The method distinguishes signal change events from vehicle events and
+     * dispatches to the appropriate handler. Visual updates are scheduled on the
+     * EDT via {@link SwingUtilities#invokeLater(Object)} where appropriate.
+     * 
+     * @param ev the event to process
+     */
     private void handleEvent(Event ev) {
-        if (ev == null)
-            return;
-
         logCb.accept(ev.toString());
 
         if (ev instanceof SignalChangeEvent) {
@@ -252,24 +299,10 @@ public class DashboardController {
             return;
         }
 
-        if (!(ev instanceof VehicleEvent)) {
-            logCb.accept("Evento não processado pelo DashboardController: " + ev.getClass().getSimpleName());
-            return;
-        }
-
         VehicleEvent ve = (VehicleEvent) ev;
         Vehicle v = ve.getVehicle();
 
-        if (v == null) {
-            logCb.accept("VehicleEvent sem veículo associado");
-            return;
-        }
-
         EventType type = ve.getType();
-        if (type == null) {
-            logCb.accept("VehicleEvent sem tipo definido");
-            return;
-        }
 
         switch (type) {
             case NEW_VEHICLE:
@@ -291,9 +324,14 @@ public class DashboardController {
                 logCb.accept("Tipo de VehicleEvent não tratado: " + type);
         }
 
-        SwingUtilities.invokeLater(renderer::repaint);
+        SwingUtilities.invokeLater(this.renderer::repaint);
     }
 
+    /**
+     * Process a signal color change event.
+     *
+     * @param s the signal change event
+     */
     private void handleSignalChange(SignalChangeEvent s) {
         RoadEnum road = s.getRoad();
         this.model.getTrafficLights().put(road, s.getSignalColor());
@@ -301,20 +339,31 @@ public class DashboardController {
         SwingUtilities.invokeLater(() -> this.renderer.repaint());
     }
 
+    /**
+     * Create a new sprite for an entering vehicle and record entrance stats.
+     *
+     * @param ve the vehicle event
+     * @param v  the vehicle instance
+     */
     private void handleNewVehicle(VehicleEvent ve, Vehicle v) {
         Point p = this.nodePositions.get(ve.getNode());
-        if (p == null) {
-            logCb.accept("Nova vehicle sem posição de nó: " + ve.getNode());
-            return;
-        }
         synchronized (this.sprites) {
             this.sprites.put(v.getId(), new VehicleSprite(v.getId(), v, p.x, p.y));
         }
-        long ent = (v.getEntranceTime() > 0) ? v.getEntranceTime() : System.currentTimeMillis();
+        long ent = System.currentTimeMillis();
         this.stats.recordEntranceTimestamp(v.getId(), ent);
         this.stats.recordCreatedVehicle(v);
     }
 
+    /**
+     * Handle a vehicle departure from a node.
+     * <p>
+     * This records departure timestamps, computes and records wait
+     * times (if any) and removes the sprite from visual queues.
+     *
+     * @param ve the vehicle event
+     * @param v  the vehicle instance
+     */
     private void handleVehicleDeparture(VehicleEvent ve, Vehicle v) {
         String id = v.getId();
 
@@ -322,64 +371,55 @@ public class DashboardController {
         if (sigArr != null) {
             long waitMs = System.currentTimeMillis() - sigArr;
             VehicleType vtype = v.getType();
-            if (vtype != null) {
-                this.stats.recordWaitForType(vtype, waitMs);
-            }
+            this.stats.recordWaitForType(vtype, waitMs);
         }
 
         this.stats.recordDepartureTimestamp(id);
         this.model.removeSpriteFromAllQueues(id);
         SwingUtilities.invokeLater(this.updateStatsCb);
 
-        Point nodePoint = this.nodePositions.get(ve.getNode());
-        if (nodePoint != null) {
-            synchronized (this.sprites) {
-                VehicleSprite s = this.sprites.get(id);
-                if (s != null) {
-                    s.setTarget(nodePoint.x, nodePoint.y, 10);
-                }
-            }
-        }
-
         RoadEnum road = roadFromPrevToNode(v, ve.getNode());
         this.model.compactQueue(road);
     }
 
+    /**
+     * Handle a vehicle arriving at a traffic signal.
+     * <p>
+     * The handler records the signal arrival time, removes the vehicle
+     * from the passing schedule for its previous road, records travel time
+     * since departure, updates statistics, and enqueues the corresponding
+     * sprite into the model's signal queue for the incoming road.
+     *
+     * @param ve the vehicle event
+     * @param v  the vehicle instance
+     */
     private void handleVehicleSignalArrival(VehicleEvent ve, Vehicle v) {
         String id = v.getId();
         this.stats.recordSignalArrival(id);
 
         RoadEnum removeRoad = roadFromPrevToNode(v, ve.getNode());
-        if (removeRoad != null) {
-            Deque<AbstractMap.SimpleEntry<Long, String>> dq = this.passingSchedule.get(removeRoad);
-            if (dq != null) {
-                synchronized (dq) {
-                    Iterator<AbstractMap.SimpleEntry<Long, String>> it = dq.iterator();
-                    while (it.hasNext()) {
-                        AbstractMap.SimpleEntry<Long, String> e = it.next();
-                        if (id.equals(e.getValue())) {
-                            it.remove();
-                            break;
-                        }
-                    }
+        Deque<AbstractMap.SimpleEntry<Long, String>> dq = this.passingSchedule.get(removeRoad);
+        synchronized (dq) {
+            Iterator<AbstractMap.SimpleEntry<Long, String>> it = dq.iterator();
+            while (it.hasNext()) {
+                AbstractMap.SimpleEntry<Long, String> e = it.next();
+                if (id.equals(e.getValue())) {
+                    it.remove();
+                    break;
                 }
             }
         }
 
         Long dep = this.stats.removeDepartureTimestamp(id);
+
         if (dep != null) {
             long dur = System.currentTimeMillis() - dep;
             this.stats.recordTravelTime(v, dur);
-            SwingUtilities.invokeLater(this.updateStatsCb);
         }
-
+        SwingUtilities.invokeLater(this.updateStatsCb);
         this.stats.recordPassedAtNode(ve.getNode(), v);
 
         RoadEnum incoming = roadFromPrevToNode(v, ve.getNode());
-        if (incoming == null) {
-            logCb.accept("Warning: cannot determine incoming road for vehicle " + id + " to node " + ve.getNode());
-            return;
-        }
 
         synchronized (this.sprites) {
             VehicleSprite s = this.sprites.get(id);
@@ -389,13 +429,20 @@ public class DashboardController {
         }
     }
 
+    /**
+     * Handle vehicle exit events.
+     * <p>
+     * Marks the sprite for removal, records exit statistics and removes
+     * any leftover timestamps and queue entries related to the vehicle.
+     *
+     * @param ve the vehicle event
+     * @param v  the vehicle instance
+     */
     private void handleVehicleExit(VehicleEvent ve, Vehicle v) {
         String id = v.getId();
         synchronized (sprites) {
             VehicleSprite s = sprites.get(id);
-            if (s != null) {
-                s.markForRemoval();
-            }
+            s.markForRemoval();
         }
         this.stats.recordExitedVehicle(v);
         this.stats.recordTripTimeByType(v);
@@ -404,42 +451,37 @@ public class DashboardController {
         SwingUtilities.invokeLater(this.updateStatsCb);
     }
 
+    /**
+     * Update visual state when a vehicle passes a road segment.
+     *
+     * <p>
+     * The method computes the destination traffic point in front of the
+     * destination node (taking queueing into account), schedules the
+     * sprite animation with a corrected completion time based on the
+     * passing schedule and enqueues the sprite movement.
+     *
+     * @param ve the vehicle event describing the pass
+     * @param v  the vehicle instance
+     */
     private void handlePassRoad(VehicleEvent ve, Vehicle v) {
-        if (v == null || ve == null)
-            return;
         String id = v.getId();
-
         VehicleSprite s;
         synchronized (this.sprites) {
             s = this.sprites.get(id);
         }
-        if (s == null) {
-            logCb.accept("Warning: sprite for " + id + " not found in handlePassRoad; skipping visual update");
-            return;
-        }
 
         RoadEnum road = roadFromPrevToNode(v, ve.getNode());
-        if (road == null) {
-            logCb.accept("Warning: cannot determine road for vehicle " + id + " in handlePassRoad");
-            return;
-        }
 
         Point dest = this.nodePositions.get(ve.getNode());
         Point origin = this.nodePositions.get(road.getOrigin());
-        if (dest == null || origin == null) {
-            logCb.accept("Warning: origin/destination node position missing for node " + ve.getNode());
-            return;
-        }
 
         long baseTime = (road == null) ? 1000L : road.getTime();
         long passMs = (v.getType() == null) ? baseTime : v.getType().getTimeToPass(baseTime);
         long scheduledFinish = System.currentTimeMillis() + passMs;
 
         Deque<AbstractMap.SimpleEntry<Long, String>> dq = this.passingSchedule.get(road);
-        if (dq == null) {
-            synchronized (this.passingSchedule) {
-                dq = this.passingSchedule.computeIfAbsent(road, r -> new ArrayDeque<>());
-            }
+        synchronized (this.passingSchedule) {
+            dq = this.passingSchedule.computeIfAbsent(road, r -> new ArrayDeque<>());
         }
 
         int posInSchedule;
@@ -462,10 +504,17 @@ public class DashboardController {
         Point signalPoint = MapModel.computeTrafficPoint(origin, dest, queueIndex);
 
         long anim = Math.max(200L, corrected - System.currentTimeMillis());
-        s.clearFaceTarget();
         s.setTarget(signalPoint.x, signalPoint.y, (int) anim);
     }
 
+    /**
+     * Compute the {@link RoadEnum} that connects a vehicle's previous node
+     * to the given node.
+     *
+     * @param v    the vehicle whose route is consulted
+     * @param node the target node
+     * @return the corresponding RoadEnum
+     */
     private RoadEnum roadFromPrevToNode(Vehicle v, NodeEnum node) {
         if (v == null || node == null)
             return null;
@@ -475,6 +524,13 @@ public class DashboardController {
         return RoadEnum.toRoadEnum(prev.toString() + "_" + node.toString());
     }
 
+    /**
+     * Shutdown the controller and underlying executor.
+     * <p>
+     * Attempts to stop the running simulator then forcibly shuts down
+     * the executor service used for background tasks. After calling this
+     * method the controller should not be used again.
+     */
     public void shutdown() {
         try {
             stopSimulation();
