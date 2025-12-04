@@ -1,24 +1,23 @@
 package Traffic;
 
-import java.util.*;
-
 import Node.NodeEnum;
+import java.util.*;
 
 /**
  * Enumeration representing all roads available in the system.
  * Each road connects two nodes.
  */
 public enum RoadEnum {
-    E1_CR1(NodeEnum.E1, NodeEnum.CR1, 1000, 5000),
-    E2_CR2(NodeEnum.E2, NodeEnum.CR2, 1000, 5000),
-    E3_CR3(NodeEnum.E3, NodeEnum.CR3, 1000, 5000),
-    CR1_CR2(NodeEnum.CR1, NodeEnum.CR2, 1500, 5000),
-    CR1_CR4(NodeEnum.CR1, NodeEnum.CR4, 1500, 5000),
-    CR2_CR1(NodeEnum.CR2, NodeEnum.CR1, 1500, 5000),
-    CR2_CR3(NodeEnum.CR2, NodeEnum.CR3, 1500, 5000),
-    CR2_CR5(NodeEnum.CR2, NodeEnum.CR5, 1500, 5000),
-    CR3_CR2(NodeEnum.CR3, NodeEnum.CR2, 1500, 5000),
-    CR4_CR5(NodeEnum.CR4, NodeEnum.CR5, 1500, 5000),
+    E1_CR1(NodeEnum.E1, NodeEnum.CR1, 1000, 2000),
+    E2_CR2(NodeEnum.E2, NodeEnum.CR2, 1000, 2000),
+    E3_CR3(NodeEnum.E3, NodeEnum.CR3, 1000, 2000),
+    CR1_CR2(NodeEnum.CR1, NodeEnum.CR2, 1500, 2000),
+    CR1_CR4(NodeEnum.CR1, NodeEnum.CR4, 1500, 2000),
+    CR2_CR1(NodeEnum.CR2, NodeEnum.CR1, 1500, 2000),
+    CR2_CR3(NodeEnum.CR2, NodeEnum.CR3, 1500, 2000),
+    CR2_CR5(NodeEnum.CR2, NodeEnum.CR5, 1500, 2000),
+    CR3_CR2(NodeEnum.CR3, NodeEnum.CR2, 1500, 2000),
+    CR4_CR5(NodeEnum.CR4, NodeEnum.CR5, 1500, 2000),
     CR3_S(NodeEnum.CR3, NodeEnum.S, 2000),
     CR5_S(NodeEnum.CR5, NodeEnum.S, 2000);
 

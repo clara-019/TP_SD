@@ -1,13 +1,12 @@
 package Node;
 
-import java.util.List;
-import java.util.Random;
-
 import Comunication.*;
 import Event.*;
 import Traffic.RoadEnum;
 import Utils.*;
 import Vehicle.*;
+import java.util.List;
+import java.util.Random;
 
 /**
  * Entrance node responsible for periodically generating vehicles and
@@ -20,7 +19,7 @@ import Vehicle.*;
  * their departure is sent to the destination crossroad over the network.
  */
 public class Entrance {
-    private static final double LAMBDA = 0.3;
+    private static final double LAMBDA = 0.2;
     private static final Random RND = new Random();
     private final NodeEnum entrance;
     private final LogicalClock clock = new LogicalClock();
