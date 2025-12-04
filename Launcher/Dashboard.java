@@ -34,7 +34,7 @@ public class Dashboard extends JFrame {
     private JLabel statsActiveLabel;
     private JLabel statsCreatedLabel;
     private JLabel statsExitedLabel;
-    private JLabel statsAvgTimeLabel;
+    private JLabel statsAvgTripLabel;
     private JLabel statsCreatedByTypeLabel;
     private JLabel statsActiveByTypeLabel;
     private JLabel statsExitedByTypeLabel;
@@ -123,11 +123,11 @@ public class Dashboard extends JFrame {
         statsCreatedLabel = new JLabel("Created: 0");
         statsActiveLabel = new JLabel("Active: 0");
         statsExitedLabel = new JLabel("Exited: 0");
-        statsAvgTimeLabel = new JLabel("Avg Trip: 0.0s");
+        statsAvgTripLabel = new JLabel("Avg trip (s): 0.00");
         addLabelWithGap(overallStatsPanel, statsCreatedLabel, 4);
         addLabelWithGap(overallStatsPanel, statsActiveLabel, 4);
         addLabelWithGap(overallStatsPanel, statsExitedLabel, 4);
-        overallStatsPanel.add(statsAvgTimeLabel);
+        overallStatsPanel.add(statsAvgTripLabel);
         overallStatsPanel.setMaximumSize(new Dimension(180, 200));
         statsContainerPanel.add(overallStatsPanel);
         statsContainerPanel.add(Box.createHorizontalStrut(10));
@@ -265,6 +265,56 @@ public class Dashboard extends JFrame {
         parent.add(Box.createVerticalStrut(gap));
     }
 
+    private void setLabelText(JLabel lbl, String text) {
+        if (lbl != null)
+            lbl.setText(text);
+    }
+
+    private String joinCounts(Map<VehicleType, Integer> map) {
+        StringBuilder sb = new StringBuilder();
+        for (VehicleType vt : VehicleType.values()) {
+            int v = map.getOrDefault(vt, 0);
+            sb.append(vt.getTypeToString()).append("=").append(v).append(" ");
+        }
+        return sb.toString().trim();
+    }
+
+    private String formatAvgWait(Map<VehicleType, Long> avgWaitMs) {
+        StringBuilder sb = new StringBuilder();
+        for (VehicleType vt : VehicleType.values()) {
+            long avgMs = avgWaitMs.getOrDefault(vt, 0L);
+            double avgS = (avgMs == 0L) ? 0.0 : (avgMs / 1000.0);
+            sb.append(vt.getTypeToString()).append("=")
+                    .append(String.format("%.2f", avgS)).append(" ");
+        }
+        return sb.toString().trim();
+    }
+
+    private String formatAvgRoad(Map<VehicleType, Double> avgRoad) {
+        StringBuilder sb = new StringBuilder();
+        for (VehicleType vt : VehicleType.values()) {
+            double avgR = avgRoad.getOrDefault(vt, 0.0);
+            sb.append(vt.getTypeToString()).append("=")
+                    .append(String.format("%.2f", avgR)).append(" ");
+        }
+        return sb.toString().trim();
+    }
+
+    private String formatTripStats(Map<VehicleType, long[]> tripStats) {
+        StringBuilder sb = new StringBuilder();
+        for (VehicleType vt : VehicleType.values()) {
+            long[] arr = tripStats.getOrDefault(vt, new long[]{0L, 0L, 0L});
+            double minS = (arr[0] == 0L) ? 0.0 : (arr[0] / 1000.0);
+            double avgS = (arr[1] == 0L) ? 0.0 : (arr[1] / 1000.0);
+            double maxS = (arr[2] == 0L) ? 0.0 : (arr[2] / 1000.0);
+            sb.append(vt.getTypeToString()).append("=")
+                    .append(String.format("%.2f", minS)).append("/")
+                    .append(String.format("%.2f", avgS)).append("/")
+                    .append(String.format("%.2f", maxS)).append(" ");
+        }
+        return sb.toString().trim();
+    }
+
     private void updateStatsLabels() {
         int active;
         synchronized (sprites) {
@@ -274,10 +324,8 @@ public class Dashboard extends JFrame {
         Statistics stats = (controller == null) ? new Statistics() : controller.getStatistics();
         int created = stats.getTotalCreated();
         int exited = stats.getTotalExited();
-        long travelMs = stats.getTotalTravelTimeMs();
-        int trips = stats.getCompletedTrips();
-
-        double avgSec = (trips == 0) ? 0.0 : (travelMs / 1000.0 / trips);
+        long[] overallTrip = stats.getOverallTripStatsMillis();
+        double overallAvg = overallTrip[1] / 1000.0;
 
         if (statsActiveLabel != null)
             statsActiveLabel.setText("Active: " + active);
@@ -285,21 +333,12 @@ public class Dashboard extends JFrame {
             statsCreatedLabel.setText("Created: " + created);
         if (statsExitedLabel != null)
             statsExitedLabel.setText("Exited: " + exited);
-        if (statsAvgTimeLabel != null)
-            statsAvgTimeLabel.setText(String.format("Avg trip (s): %.2f", avgSec));
-
-        StringBuilder createdBy = new StringBuilder();
-        StringBuilder activeBy = new StringBuilder();
-        StringBuilder exitedBy = new StringBuilder();
+        if (statsAvgTripLabel != null)
+            statsAvgTripLabel.setText(String.format("Avg trip (s): %.2f", overallAvg));
 
         Map<VehicleType, Integer> createdMap = stats.getCreatedByType();
         Map<VehicleType, Integer> exitedMap = stats.getExitedByType();
-        for (VehicleType vt : VehicleType.values()) {
-            int c = createdMap.getOrDefault(vt, 0);
-            int x = exitedMap.getOrDefault(vt, 0);
-            createdBy.append(vt.getTypeToString()).append("=").append(c).append(" ");
-            exitedBy.append(vt.getTypeToString()).append("=").append(x).append(" ");
-        }
+        setLabelText(statsCreatedByTypeLabel, "Created by type: " + joinCounts(createdMap));
 
         Map<VehicleType, Integer> activeMap = new EnumMap<>(VehicleType.class);
         synchronized (sprites) {
@@ -310,50 +349,17 @@ public class Dashboard extends JFrame {
                 activeMap.put(vt, activeMap.getOrDefault(vt, 0) + 1);
             }
         }
-        for (VehicleType vt : VehicleType.values()) {
-            int a = activeMap.getOrDefault(vt, 0);
-            activeBy.append(vt.getTypeToString()).append("=").append(a).append(" ");
-        }
+        setLabelText(statsActiveByTypeLabel, "Active by type: " + joinCounts(activeMap));
+        setLabelText(statsExitedByTypeLabel, "Exited by type: " + joinCounts(exitedMap));
 
-        if (statsCreatedByTypeLabel != null)
-            statsCreatedByTypeLabel.setText("Created by type: " + createdBy.toString().trim());
-        if (statsActiveByTypeLabel != null)
-            statsActiveByTypeLabel.setText("Active by type: " + activeBy.toString().trim());
-        if (statsExitedByTypeLabel != null)
-            statsExitedByTypeLabel.setText("Exited by type: " + exitedBy.toString().trim());
-
-        StringBuilder avgWaitSb = new StringBuilder();
         Map<VehicleType, Long> avgWaitMs = stats.getAvgWaitByType();
-        StringBuilder avgRoadSb = new StringBuilder();
+        setLabelText(statsAvgWaitByTypeLabel, "Avg wait (s) by type: " + formatAvgWait(avgWaitMs));
+
         Map<VehicleType, Double> avgRoad = stats.getAvgRoadByTypeSeconds();
-        for (VehicleType vt : VehicleType.values()) {
-            long avgMs = avgWaitMs.getOrDefault(vt, 0L);
-            double avgW = (avgMs == 0L) ? 0.0 : (avgMs / 1000.0);
-            avgWaitSb.append(vt.getTypeToString()).append("=").append(String.format("%.2f", avgW)).append(" ");
+        setLabelText(statsAvgRoadByTypeLabel, "Avg road (s) by type: " + formatAvgRoad(avgRoad));
 
-            double avgR = avgRoad.getOrDefault(vt, 0.0);
-            avgRoadSb.append(vt.getTypeToString()).append("=").append(String.format("%.2f", avgR)).append(" ");
-        }
-
-        if (statsAvgWaitByTypeLabel != null)
-            statsAvgWaitByTypeLabel.setText("Avg wait (s) by type: " + avgWaitSb.toString().trim());
-        if (statsAvgRoadByTypeLabel != null)
-            statsAvgRoadByTypeLabel.setText("Avg road (s) by type: " + avgRoadSb.toString().trim());
-
-        StringBuilder tripSb = new StringBuilder();
         Map<VehicleType, long[]> tripStats = stats.getTripStatsMillis();
-        for (VehicleType vt : VehicleType.values()) {
-            long[] arr = tripStats.getOrDefault(vt, new long[] { 0L, 0L, 0L });
-            double minS = (arr[0] == 0L) ? 0.0 : (arr[0] / 1000.0);
-            double avgS = (arr[1] == 0L) ? 0.0 : (arr[1] / 1000.0);
-            double maxS = (arr[2] == 0L) ? 0.0 : (arr[2] / 1000.0);
-            tripSb.append(vt.getTypeToString()).append("=")
-                    .append(String.format("%.2f", minS)).append("/")
-                    .append(String.format("%.2f", avgS)).append("/")
-                    .append(String.format("%.2f", maxS)).append(" ");
-        }
-        if (statsTripByTypeLabel != null)
-            statsTripByTypeLabel.setText("Trip min/avg/max (s) by type: " + tripSb.toString().trim());
+        setLabelText(statsTripByTypeLabel, "Trip min/avg/max (s) by type: " + formatTripStats(tripStats));
 
         StringBuilder perCross = new StringBuilder();
         Map<NodeEnum, Map<VehicleType, Integer>> perNode = stats.getPassedByNodeByType();

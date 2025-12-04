@@ -8,7 +8,6 @@ import java.util.*;
 public class Statistics {
     private int totalCreated = 0;
     private int totalExited = 0;
-    private long totalTravelTimeMs = 0L;
     private int completedTrips = 0;
 
     private final Map<String, Long> departTimestamps = new HashMap<>();
@@ -29,58 +28,69 @@ public class Statistics {
     private final Map<NodeEnum, Map<VehicleType, Integer>> passedByNodeByType = new EnumMap<>(NodeEnum.class);
 
     public synchronized void recordCreatedVehicle(Vehicle v) {
-        if (v == null) return;
+        if (v == null)
+            return;
         this.totalCreated++;
         VehicleType vt = v.getType();
-        if (vt != null) this.createdByType.put(vt, this.createdByType.getOrDefault(vt, 0) + 1);
+        if (vt != null)
+            this.createdByType.put(vt, this.createdByType.getOrDefault(vt, 0) + 1);
     }
 
     public synchronized void recordExitedVehicle(Vehicle v) {
-        if (v == null) return;
+        if (v == null)
+            return;
         this.totalExited++;
         VehicleType vt = v.getType();
-        if (vt != null) this.exitedByType.put(vt, this.exitedByType.getOrDefault(vt, 0) + 1);
+        if (vt != null)
+            this.exitedByType.put(vt, this.exitedByType.getOrDefault(vt, 0) + 1);
     }
 
     public synchronized void recordPassedAtNode(NodeEnum node, Vehicle v) {
-        if (node == null || v == null) return;
+        if (node == null || v == null)
+            return;
         Map<VehicleType, Integer> m = this.passedByNodeByType.get(node);
         if (m == null) {
             m = new EnumMap<>(VehicleType.class);
             this.passedByNodeByType.put(node, m);
         }
         VehicleType vt = v.getType();
-        if (vt != null) m.put(vt, m.getOrDefault(vt, 0) + 1);
+        if (vt != null)
+            m.put(vt, m.getOrDefault(vt, 0) + 1);
     }
 
     public synchronized void recordDepartureTimestamp(String id) {
-        if (id == null) return;
+        if (id == null)
+            return;
         this.departTimestamps.put(id, System.currentTimeMillis());
     }
 
     public synchronized Long removeDepartureTimestamp(String id) {
-        if (id == null) return null;
+        if (id == null)
+            return null;
         return this.departTimestamps.remove(id);
     }
 
     public synchronized void recordEntranceTimestamp(String id, long timestamp) {
-        if (id == null) return;
+        if (id == null)
+            return;
         this.entranceTimestamps.put(id, timestamp);
     }
 
     public synchronized void recordSignalArrival(String id) {
-        if (id == null) return;
+        if (id == null)
+            return;
         this.signalArrivalTimestamps.put(id, System.currentTimeMillis());
     }
 
     public synchronized Long removeSignalArrival(String id) {
-        if (id == null) return null;
+        if (id == null)
+            return null;
         return this.signalArrivalTimestamps.remove(id);
     }
 
     public synchronized void recordTravelTime(Vehicle v, long ms) {
-        if (v == null) return;
-        this.totalTravelTimeMs += ms;
+        if (v == null)
+            return;
         this.completedTrips++;
         VehicleType vt = v.getType();
         if (vt != null) {
@@ -90,37 +100,58 @@ public class Statistics {
     }
 
     public synchronized void recordTripTimeByType(Vehicle v) {
-        if (v == null) return;
+        if (v == null)
+            return;
         String id = v.getId();
         Long entrance = this.entranceTimestamps.remove(id);
-        if (entrance == null || entrance <= 0) entrance = v.getEntranceTime();
+        if (entrance == null || entrance <= 0)
+            entrance = v.getEntranceTime();
         long exit = v.getExitTime();
-        if (exit <= 0) exit = System.currentTimeMillis();
-        if (entrance == null || entrance <= 0 || exit < entrance) return;
+        if (exit <= 0)
+            exit = System.currentTimeMillis();
+        if (entrance == null || entrance <= 0 || exit < entrance)
+            return;
         long travelMs = exit - entrance;
         VehicleType vt = v.getType();
-        if (vt == null) return;
+        if (vt == null)
+            return;
         this.totalTripByType.put(vt, this.totalTripByType.getOrDefault(vt, 0L) + travelMs);
         this.tripCountByType.put(vt, this.tripCountByType.getOrDefault(vt, 0) + 1);
         Long prevMin = this.minTripByType.get(vt);
-        if (prevMin == null || travelMs < prevMin) this.minTripByType.put(vt, travelMs);
+        if (prevMin == null || travelMs < prevMin)
+            this.minTripByType.put(vt, travelMs);
         Long prevMax = this.maxTripByType.get(vt);
-        if (prevMax == null || travelMs > prevMax) this.maxTripByType.put(vt, travelMs);
+        if (prevMax == null || travelMs > prevMax)
+            this.maxTripByType.put(vt, travelMs);
     }
 
     public synchronized void recordWaitForType(VehicleType vt, long waitMs) {
-        if (vt == null) return;
+        if (vt == null)
+            return;
         this.totalWaitByType.put(vt, this.totalWaitByType.getOrDefault(vt, 0L) + waitMs);
         this.waitCountByType.put(vt, this.waitCountByType.getOrDefault(vt, 0) + 1);
     }
 
-    public synchronized int getTotalCreated() { return totalCreated; }
-    public synchronized int getTotalExited() { return totalExited; }
-    public synchronized long getTotalTravelTimeMs() { return totalTravelTimeMs; }
-    public synchronized int getCompletedTrips() { return completedTrips; }
+    public synchronized int getTotalCreated() {
+        return totalCreated;
+    }
 
-    public synchronized Map<VehicleType, Integer> getCreatedByType() { return new EnumMap<>(createdByType); }
-    public synchronized Map<VehicleType, Integer> getExitedByType() { return new EnumMap<>(exitedByType); }
+    public synchronized int getTotalExited() {
+        return totalExited;
+    }
+
+    public synchronized int getCompletedTrips() {
+        return completedTrips;
+    }
+
+    public synchronized Map<VehicleType, Integer> getCreatedByType() {
+        return new EnumMap<>(createdByType);
+    }
+
+    public synchronized Map<VehicleType, Integer> getExitedByType() {
+        return new EnumMap<>(exitedByType);
+    }
+
     public synchronized Map<VehicleType, Long> getAvgWaitByType() {
         Map<VehicleType, Long> out = new EnumMap<>(VehicleType.class);
         for (VehicleType vt : VehicleType.values()) {
@@ -158,8 +189,53 @@ public class Statistics {
             long avg = (cnt == 0) ? 0L : total / cnt;
             long min = this.minTripByType.getOrDefault(vt, 0L);
             long max = this.maxTripByType.getOrDefault(vt, 0L);
-            out.put(vt, new long[]{min, avg, max});
+            out.put(vt, new long[] { min, avg, max });
         }
         return out;
+    }
+
+    public synchronized long getTotalTripTimeMs() {
+        long sum = 0L;
+        for (Long v : this.totalTripByType.values()) {
+            if (v != null)
+                sum += v;
+        }
+        return sum;
+    }
+
+    public synchronized int getTotalTripCount() {
+        int sum = 0;
+        for (Integer c : this.tripCountByType.values()) {
+            if (c != null)
+                sum += c;
+        }
+        return sum;
+    }
+
+    public synchronized long[] getOverallTripStatsMillis() {
+        long total = 0L;
+        int count = 0;
+        long min = Long.MAX_VALUE;
+        long max = 0L;
+        for (VehicleType vt : VehicleType.values()) {
+            long t = this.totalTripByType.getOrDefault(vt, 0L);
+            int c = this.tripCountByType.getOrDefault(vt, 0);
+            if (c > 0) {
+                total += t;
+                count += c;
+            }
+            long m = this.minTripByType.getOrDefault(vt, 0L);
+            long M = this.maxTripByType.getOrDefault(vt, 0L);
+            if (m > 0 && m < min)
+                min = m;
+            if (M > max)
+                max = M;
+        }
+        if (count == 0)
+            return new long[] { 0L, 0L, 0L };
+        long avg = total / count;
+        if (min == Long.MAX_VALUE)
+            min = 0L;
+        return new long[] { min, avg, max };
     }
 }
