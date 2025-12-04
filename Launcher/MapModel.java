@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.logging.Logger;
 
-public class DashboardModel {
+public class MapModel {
     public static final double NODE_HALF_WIDTH = 44.0;
     public static final double NODE_HALF_HEIGHT = 28.0;
     public static final double QUEUE_SPACING = 34.0;
@@ -18,7 +18,7 @@ public class DashboardModel {
 
     public static final long SIGNAL_ARRIVAL_ANIM_MS = 200L;
     public static final long COMPACT_ANIM_MS = 300L;
-    private static final Logger LOGGER = Logger.getLogger(DashboardModel.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(MapModel.class.getName());
 
     private final Map<String, VehicleSprite> sprites;
     private final Map<NodeEnum, Point> nodePositions;
@@ -26,7 +26,7 @@ public class DashboardModel {
     private final Map<RoadEnum, Deque<VehicleSprite>> signalQueues;
     private final Map<RoadEnum, QueueStats> queueStats;
 
-    public DashboardModel() {
+    public MapModel() {
         this.sprites = new ConcurrentHashMap<>();
         this.nodePositions = java.util.Collections.synchronizedMap(new EnumMap<>(NodeEnum.class));
         this.trafficLights = java.util.Collections.synchronizedMap(new EnumMap<>(RoadEnum.class));

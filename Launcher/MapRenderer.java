@@ -11,7 +11,7 @@ import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.util.*;
 
-public class DashboardRenderer extends JPanel {
+public class MapRenderer extends JPanel {
 
     private static final int NODE_W = 80;
     private static final int NODE_H = 80;
@@ -29,7 +29,7 @@ public class DashboardRenderer extends JPanel {
     private static final Stroke ROAD_STROKE = new BasicStroke(6, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
     private static final Color ROAD_COLOR = new Color(56, 56, 56);
 
-    public DashboardRenderer(DashboardModel model) {
+    public MapRenderer(MapModel model) {
         this.nodePositions = model.getNodePositions();
         this.sprites = model.getSprites();
         this.trafficLights = model.getTrafficLights();
@@ -57,16 +57,14 @@ public class DashboardRenderer extends JPanel {
 
                         int current = 0;
                         if (q != null) {
-                            synchronized (q) { current = q.size(); }
+                            synchronized (q) {
+                                current = q.size();
+                            }
                         }
                         int max = (st == null) ? 0 : st.getMax();
                         double avg = (st == null) ? 0.0 : st.getAverage();
                         long samples = (st == null) ? 0L : st.getSamples();
-                        String msg = String.format(
-                                "Road: %s\nCurrent queue: %d\nMax queue: %d\nAverage size: %.2f\nSamples: %d",
-                                road.name(), current, max, avg, samples);
-                        JOptionPane.showMessageDialog(DashboardRenderer.this, msg, "Queue stats",
-                                JOptionPane.INFORMATION_MESSAGE);
+                        UiUtils.showQueueStatsDialog(MapRenderer.this, road, current, max, avg, samples);
                         break;
                     }
                 }

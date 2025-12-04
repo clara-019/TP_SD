@@ -23,17 +23,17 @@ public class DashboardController {
     private static final Logger LOGGER = Logger.getLogger(DashboardController.class.getName());
 
     private static final long PASS_DELAY_MS = 200L;
-    private static final int AUTO_STOP_MULTIPLIER = 200;
+    private static final int AUTO_STOP_MS = 60_000;
 
-    private final DashboardModel model;
-    private final Map<String, VehicleSprite> sprites; 
+    private final MapModel model;
+    private final Map<String, VehicleSprite> sprites;
     private final Map<NodeEnum, Point> nodePositions;
-    private final DashboardRenderer renderer;
+    private final MapRenderer renderer;
 
     private final Statistics stats = new Statistics();
 
     private Simulator simulator;
-    private BlockingQueue<Event> eventQueue; 
+    private BlockingQueue<Event> eventQueue;
 
     private final ExecutorService executor = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r);
@@ -45,31 +45,26 @@ public class DashboardController {
     private javax.swing.Timer autoStopTimer;
     private final AtomicBoolean gracefulStopping = new AtomicBoolean(false);
 
-    private final Map<RoadEnum, Deque<AbstractMap.SimpleEntry<Long, String>>> passingSchedule =
-            new EnumMap<>(RoadEnum.class);
+    private final Map<RoadEnum, Deque<AbstractMap.SimpleEntry<Long, String>>> passingSchedule = new EnumMap<>(
+            RoadEnum.class);
 
     private final Consumer<String> logCb;
     private final Runnable updateStatsCb;
     private final Consumer<String> statusTextCb;
     private final Consumer<Color> statusColorCb;
 
-    public DashboardController(DashboardModel model,
-                               Map<String, VehicleSprite> sprites,
-                               Map<NodeEnum, Point> nodePositions,
-                               DashboardRenderer renderer,
-                               Consumer<String> logCb,
-                               Runnable updateStatsCb,
-                               Consumer<String> statusTextCb,
-                               Consumer<Color> statusColorCb) {
-        this.model = Objects.requireNonNull(model, "model");
-        this.sprites = Objects.requireNonNull(sprites, "sprites");
-        this.nodePositions = Objects.requireNonNull(nodePositions, "nodePositions");
-        this.renderer = Objects.requireNonNull(renderer, "renderer");
+    public DashboardController(MapModel model, Map<String, VehicleSprite> sprites, Map<NodeEnum, Point> nodePositions,
+            MapRenderer renderer, Consumer<String> logCb, Runnable updateStatsCb, Consumer<String> statusTextCb,
+            Consumer<Color> statusColorCb) {
+        this.model = model;
+        this.sprites = sprites;
+        this.nodePositions = nodePositions;
+        this.renderer = renderer;
 
-        this.logCb = Objects.requireNonNull(logCb, "logCb");
-        this.updateStatsCb = Objects.requireNonNull(updateStatsCb, "updateStatsCb");
-        this.statusTextCb = Objects.requireNonNull(statusTextCb, "statusTextCb");
-        this.statusColorCb = Objects.requireNonNull(statusColorCb, "statusColorCb");
+        this.logCb = logCb;
+        this.updateStatsCb = updateStatsCb;
+        this.statusTextCb = statusTextCb;
+        this.statusColorCb = statusColorCb;
 
         for (RoadEnum r : RoadEnum.values()) {
             this.passingSchedule.put(r, new ArrayDeque<>());
@@ -230,7 +225,7 @@ public class DashboardController {
         if (this.autoStopTimer != null && this.autoStopTimer.isRunning()) {
             this.autoStopTimer.stop();
         }
-        int delay = Dashboard.TIMER_DELAY_MS * AUTO_STOP_MULTIPLIER;
+        int delay = (int) AUTO_STOP_MS;
         this.autoStopTimer = new javax.swing.Timer(delay, e -> {
             logCb.accept("Auto-stop: elapsed — requesting graceful stop.");
             requestGracefulStop();
@@ -247,7 +242,8 @@ public class DashboardController {
     }
 
     private void handleEvent(Event ev) {
-        if (ev == null) return;
+        if (ev == null)
+            return;
 
         logCb.accept(ev.toString());
 
@@ -279,23 +275,18 @@ public class DashboardController {
             case NEW_VEHICLE:
                 handleNewVehicle(ve, v);
                 break;
-
             case VEHICLE_DEPARTURE:
                 handleVehicleDeparture(ve, v);
                 break;
-
             case VEHICLE_ROAD_ARRIVAL:
                 handlePassRoad(ve, v);
                 break;
-
             case VEHICLE_SIGNAL_ARRIVAL:
                 handleVehicleSignalArrival(ve, v);
                 break;
-
             case VEHICLE_EXIT:
                 handleVehicleExit(ve, v);
                 break;
-
             default:
                 logCb.accept("Tipo de VehicleEvent não tratado: " + type);
         }
@@ -414,7 +405,8 @@ public class DashboardController {
     }
 
     private void handlePassRoad(VehicleEvent ve, Vehicle v) {
-        if (v == null || ve == null) return;
+        if (v == null || ve == null)
+            return;
         String id = v.getId();
 
         VehicleSprite s;
@@ -433,8 +425,9 @@ public class DashboardController {
         }
 
         Point dest = this.nodePositions.get(ve.getNode());
-        if (dest == null) {
-            logCb.accept("Warning: destination node position missing for node " + ve.getNode());
+        Point origin = this.nodePositions.get(road.getOrigin());
+        if (dest == null || origin == null) {
+            logCb.accept("Warning: origin/destination node position missing for node " + ve.getNode());
             return;
         }
 
@@ -449,8 +442,10 @@ public class DashboardController {
             }
         }
 
+        int posInSchedule;
         long corrected;
         synchronized (dq) {
+            posInSchedule = dq.size();
             AbstractMap.SimpleEntry<Long, String> last = dq.peekLast();
             if (last != null && scheduledFinish < last.getKey()) {
                 corrected = last.getKey() + PASS_DELAY_MS;
@@ -460,15 +455,23 @@ public class DashboardController {
             dq.addLast(new AbstractMap.SimpleEntry<>(corrected, id));
         }
 
+        java.util.Deque<VehicleSprite> q = model.getSignalQueues().get(road);
+        int queued = (q == null) ? 0 : q.size();
+        int queueIndex = queued + posInSchedule;
+
+        Point signalPoint = MapModel.computeTrafficPoint(origin, dest, queueIndex);
+
         long anim = Math.max(200L, corrected - System.currentTimeMillis());
         s.clearFaceTarget();
-        s.setTarget(dest.x, dest.y, (int) anim);
+        s.setTarget(signalPoint.x, signalPoint.y, (int) anim);
     }
 
     private RoadEnum roadFromPrevToNode(Vehicle v, NodeEnum node) {
-        if (v == null || node == null) return null;
+        if (v == null || node == null)
+            return null;
         NodeEnum prev = v.findPreviousNode(node);
-        if (prev == null) return null;
+        if (prev == null)
+            return null;
         return RoadEnum.toRoadEnum(prev.toString() + "_" + node.toString());
     }
 

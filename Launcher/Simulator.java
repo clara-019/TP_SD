@@ -13,8 +13,9 @@ public class Simulator {
     private volatile boolean running;
     private java.util.Map<NodeEnum, Process> processes;
 
-    private PriorityBlockingQueue<Event> eventQueue = new PriorityBlockingQueue<Event>(10, Comparator.comparingLong(Event::getLogicalClock));
-    
+    private PriorityBlockingQueue<Event> eventQueue = new PriorityBlockingQueue<Event>(10,
+            Comparator.comparingLong(Event::getLogicalClock));
+
     private EventHandler eventHandler;
     private String javaCmd;
 
@@ -34,22 +35,19 @@ public class Simulator {
         System.out.println("STARTING TRAFFIC SIMULATION");
         System.out.println("=====================================");
 
-        String classpath = System.getProperty("java.class.path");
-        File workDir = new File(System.getProperty("user.dir"));
-
         eventHandler = new EventHandler(eventQueue, running);
         eventHandler.start();
 
         System.out.println("Starting nodes...");
         for (NodeEnum node : NodeEnum.values()) {
             if (node.getType() == NodeType.ENTRANCE) {
-                startEntranceProcess(node, classpath, workDir);
+                startEntranceProcess(node);
                 continue;
             } else if (node.getType() == NodeType.EXIT) {
-                startExitProcess(node, classpath, workDir);
+                startExitProcess(node);
                 continue;
             } else {
-                startCrossroadProcess(node, classpath, workDir);
+                startCrossroadProcess(node);
             }
         }
 
@@ -64,48 +62,33 @@ public class Simulator {
         System.out.println("=====================================");
     }
 
-    private void startEntranceProcess(NodeEnum entrance, String classpath, File workDir) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, "Node.Entrance", entrance.toString());
-            pb.directory(workDir);
-            Process process = pb.start();
-            processes.put(entrance, process);
-
-            System.out.println(" Entrance " + entrance + " started on port " + entrance.getPort());
-
-        } catch (Exception e) {
-            System.err.println(" Error starting " + entrance + ": " + e.getMessage());
-        }
+    private void startEntranceProcess(NodeEnum entrance) {
+        startProcess(entrance, "Node.Entrance", "Entrance");
     }
 
-    private void startExitProcess(NodeEnum exit, String classpath, File workDir) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, "Node.Exit", exit.toString());
-            pb.directory(workDir);
-            Process process = pb.start();
-            processes.put(exit, process);
-
-            System.out.println(" Exit " + exit + " started on port " + exit.getPort());
-
-        } catch (Exception e) {
-            System.err.println(" Error starting " + exit + ": " + e.getMessage());
-        }
+    private void startExitProcess(NodeEnum exit) {
+        startProcess(exit, "Node.Exit", "Exit");
     }
 
-    private void startCrossroadProcess(NodeEnum crossroad, String classpath, File workDir) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, "Node.Crossroad", crossroad.toString());
-            pb.directory(workDir);
-            Process process = pb.start();
-            processes.put(crossroad, process);
-
-            System.out.println(" Crossroad " + crossroad + " started on port " + crossroad.getPort());
-
-        } catch (Exception e) {
-            System.err.println(" Error starting " + crossroad + ": " + e.getMessage());
-        }
+    private void startCrossroadProcess(NodeEnum crossroad) {
+        startProcess(crossroad, "Node.Crossroad", "Crossroad");
     }
 
+    private void startProcess(NodeEnum node, String mainClass, String roleLabel) {
+        try {
+            String classpath = System.getProperty("java.class.path");
+            File workDir = new File(System.getProperty("user.dir"));
+            ProcessBuilder pb = new ProcessBuilder(this.javaCmd, "-cp", classpath, mainClass, node.toString());
+            pb.directory(workDir);
+            Process process = pb.start();
+            processes.put(node, process);
+
+            System.out.println(" " + roleLabel + " " + node + " started on port " + node.getPort());
+
+        } catch (Exception e) {
+            System.err.println(" Error starting " + node + ": " + e.getMessage());
+        }
+    }
 
     private void stopAllProcesses() {
         System.out.println("Stopping all processes...");
@@ -173,7 +156,8 @@ public class Simulator {
                     if (!p.waitFor(1, TimeUnit.SECONDS)) {
                         System.out.println("Entrance " + n + " did not exit, forcing destroyForcibly()");
                         p.destroyForcibly();
-                        if (!p.waitFor(1, TimeUnit.SECONDS)) System.out.println("Entrance " + n + " still alive after forcible destroy");
+                        if (!p.waitFor(1, TimeUnit.SECONDS))
+                            System.out.println("Entrance " + n + " still alive after forcible destroy");
                     }
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();

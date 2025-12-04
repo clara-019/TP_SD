@@ -19,15 +19,15 @@ import javax.swing.Timer;
 
 public class Dashboard extends JFrame {
     public static final int TIMER_DELAY_MS = 30;
-    public static final int AUTO_STOP_MS = 60_000;
+    
 
     private final Map<String, VehicleSprite> sprites;
     private final Map<NodeEnum, Point> nodePositions;
-    private final DashboardModel model;
+    private final MapModel model;
 
     private DashboardController controller;
 
-    private javax.swing.JTextArea statsPerCrossroadArea;
+    private JTextArea statsPerCrossroadArea;
 
     private JTextArea logArea;
     private JLabel statusLabel;
@@ -42,17 +42,18 @@ public class Dashboard extends JFrame {
     private JLabel statsAvgRoadByTypeLabel;
     private JLabel statsTripByTypeLabel;
 
-    private DashboardRenderer renderer;
+    private MapRenderer renderer;
     private JButton startBtn;
     private JButton stopBtn;
 
     public Dashboard() {
-        super("Traffic Simulator Dashboard - Organized Layout");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        super("Traffic Simulator Dashboard");
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        setupWindowCloseHandler();
         setSize(1400, 950);
         setLayout(new BorderLayout());
 
-        this.model = new DashboardModel();
+        this.model = new MapModel();
 
         this.sprites = model.getSprites();
         this.nodePositions = model.getNodePositions();
@@ -70,8 +71,8 @@ public class Dashboard extends JFrame {
         top.setBackground(new Color(34, 40, 49));
         top.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-        startBtn = makeButton("Start");
-        stopBtn = makeButton("Stop");
+        startBtn = UiUtils.makeButton("Start");
+        stopBtn = UiUtils.makeButton("Stop");
 
         JPanel controls = new JPanel();
         controls.setOpaque(false);
@@ -81,7 +82,7 @@ public class Dashboard extends JFrame {
         top.add(controls, BorderLayout.WEST);
 
         this.statusLabel = new JLabel("STOPPED");
-        this.statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        this.statusLabel.setFont(UiUtils.segoeFont(Font.BOLD, 16));
         this.statusLabel.setForeground(Color.RED);
         top.add(this.statusLabel, BorderLayout.EAST);
 
@@ -91,7 +92,7 @@ public class Dashboard extends JFrame {
     private void createCenterContainer() {
         JPanel centerContainer = new JPanel(new BorderLayout());
 
-        this.renderer = new DashboardRenderer(this.model);
+        this.renderer = new MapRenderer(this.model);
         centerContainer.add(this.renderer, BorderLayout.CENTER);
 
         JPanel rightPanel = new JPanel(new BorderLayout());
@@ -101,11 +102,11 @@ public class Dashboard extends JFrame {
                 BorderFactory.createEmptyBorder(8, 8, 8, 8)));
 
         JLabel logsTitle = new JLabel("Logs");
-        logsTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        logsTitle.setFont(UiUtils.segoeFont(Font.BOLD, 12));
         rightPanel.add(logsTitle, BorderLayout.NORTH);
 
-        this.logArea = makeTextArea(15, 60, new Font("Consolas", Font.PLAIN, 11), false, false);
-        JScrollPane logScroll = wrapInScroll(this.logArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+        this.logArea = UiUtils.makeTextArea(15, 60, new Font("Consolas", Font.PLAIN, 11), false, false);
+        JScrollPane logScroll = UiUtils.wrapInScroll(this.logArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         rightPanel.add(logScroll, BorderLayout.CENTER);
 
@@ -119,20 +120,20 @@ public class Dashboard extends JFrame {
         statsContainerPanel.setBackground(new Color(240, 240, 240));
         statsContainerPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-        JPanel overallStatsPanel = createStatSection("Overall Statistics");
+        JPanel overallStatsPanel = UiUtils.createStatSection("Overall Statistics");
         statsCreatedLabel = new JLabel("Created: 0");
         statsActiveLabel = new JLabel("Active: 0");
         statsExitedLabel = new JLabel("Exited: 0");
         statsAvgTripLabel = new JLabel("Avg trip (s): 0.00");
-        addLabelWithGap(overallStatsPanel, statsCreatedLabel, 4);
-        addLabelWithGap(overallStatsPanel, statsActiveLabel, 4);
-        addLabelWithGap(overallStatsPanel, statsExitedLabel, 4);
+        UiUtils.addLabelWithGap(overallStatsPanel, statsCreatedLabel, 4);
+        UiUtils.addLabelWithGap(overallStatsPanel, statsActiveLabel, 4);
+        UiUtils.addLabelWithGap(overallStatsPanel, statsExitedLabel, 4);
         overallStatsPanel.add(statsAvgTripLabel);
         overallStatsPanel.setMaximumSize(new Dimension(180, 200));
         statsContainerPanel.add(overallStatsPanel);
         statsContainerPanel.add(Box.createHorizontalStrut(10));
 
-        JPanel typeStatsPanel = createStatSection("By Vehicle Type");
+        JPanel typeStatsPanel = UiUtils.createStatSection("By Vehicle Type");
         statsCreatedByTypeLabel = new JLabel("<html>Created: -</html>");
         statsActiveByTypeLabel = new JLabel("<html>Active: -</html>");
         statsExitedByTypeLabel = new JLabel("<html>Exited: -</html>");
@@ -143,14 +144,14 @@ public class Dashboard extends JFrame {
         JPanel typeStatsContent = new JPanel();
         typeStatsContent.setLayout(new BoxLayout(typeStatsContent, BoxLayout.Y_AXIS));
         typeStatsContent.setBackground(Color.WHITE);
-        addLabelWithGap(typeStatsContent, statsCreatedByTypeLabel, 4);
-        addLabelWithGap(typeStatsContent, statsActiveByTypeLabel, 4);
-        addLabelWithGap(typeStatsContent, statsExitedByTypeLabel, 4);
-        addLabelWithGap(typeStatsContent, statsAvgWaitByTypeLabel, 4);
-        addLabelWithGap(typeStatsContent, statsAvgRoadByTypeLabel, 4);
+        UiUtils.addLabelWithGap(typeStatsContent, statsCreatedByTypeLabel, 4);
+        UiUtils.addLabelWithGap(typeStatsContent, statsActiveByTypeLabel, 4);
+        UiUtils.addLabelWithGap(typeStatsContent, statsExitedByTypeLabel, 4);
+        UiUtils.addLabelWithGap(typeStatsContent, statsAvgWaitByTypeLabel, 4);
+        UiUtils.addLabelWithGap(typeStatsContent, statsAvgRoadByTypeLabel, 4);
         typeStatsContent.add(statsTripByTypeLabel);
 
-        JScrollPane typeStatsScroll = wrapInScroll(typeStatsContent, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+        JScrollPane typeStatsScroll = UiUtils.wrapInScroll(typeStatsContent, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         typeStatsScroll.setPreferredSize(new Dimension(550, 160));
         typeStatsPanel.add(typeStatsScroll);
@@ -158,9 +159,10 @@ public class Dashboard extends JFrame {
         statsContainerPanel.add(typeStatsPanel);
         statsContainerPanel.add(Box.createHorizontalStrut(10));
 
-        JPanel crossroadStatsPanel = createStatSection("Crossroad Stats");
-        statsPerCrossroadArea = makeTextArea(7, 25, new Font("Consolas", Font.PLAIN, 10), true, false);
-        JScrollPane crossroadScroll = wrapInScroll(statsPerCrossroadArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+        JPanel crossroadStatsPanel = UiUtils.createStatSection("Crossroad Stats");
+        statsPerCrossroadArea = UiUtils.makeTextArea(7, 25, new Font("Consolas", Font.PLAIN, 10), true, false);
+        JScrollPane crossroadScroll = UiUtils.wrapInScroll(statsPerCrossroadArea,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         crossroadScroll.setPreferredSize(new Dimension(200, 160));
         crossroadStatsPanel.add(crossroadScroll);
@@ -215,104 +217,22 @@ public class Dashboard extends JFrame {
         }).start();
     }
 
-    private JPanel createStatSection(String title) {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(new Color(255, 255, 255));
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                BorderFactory.createEmptyBorder(6, 6, 6, 6)));
-        panel.setMaximumSize(new Dimension(300, 200));
-
-        JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        titleLabel.setForeground(new Color(40, 40, 40));
-        panel.add(titleLabel);
-        panel.add(Box.createVerticalStrut(6));
-
-        return panel;
-    }
-
-    private JButton makeButton(String text) {
-        JButton b = new JButton(text);
-        b.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        b.setBackground(new Color(48, 71, 94));
-        b.setForeground(Color.WHITE);
-        b.setFocusable(false);
-        b.setBorder(BorderFactory.createEmptyBorder(6, 14, 6, 14));
-        return b;
-    }
-
-    private JTextArea makeTextArea(int rows, int cols, Font font, boolean lineWrap, boolean editable) {
-        JTextArea ta = new JTextArea(rows, cols);
-        ta.setEditable(editable);
-        if (font != null)
-            ta.setFont(font);
-        ta.setLineWrap(lineWrap);
-        ta.setWrapStyleWord(true);
-        return ta;
-    }
-
-    private JScrollPane wrapInScroll(Component comp, int vPolicy, int hPolicy) {
-        JScrollPane sp = new JScrollPane(comp);
-        sp.setVerticalScrollBarPolicy(vPolicy);
-        sp.setHorizontalScrollBarPolicy(hPolicy);
-        return sp;
-    }
-
-    private void addLabelWithGap(JPanel parent, JLabel label, int gap) {
-        parent.add(label);
-        parent.add(Box.createVerticalStrut(gap));
-    }
-
-    private void setLabelText(JLabel lbl, String text) {
-        if (lbl != null)
-            lbl.setText(text);
-    }
-
-    private String joinCounts(Map<VehicleType, Integer> map) {
-        StringBuilder sb = new StringBuilder();
-        for (VehicleType vt : VehicleType.values()) {
-            int v = map.getOrDefault(vt, 0);
-            sb.append(vt.getTypeToString()).append("=").append(v).append(" ");
-        }
-        return sb.toString().trim();
-    }
-
-    private String formatAvgWait(Map<VehicleType, Long> avgWaitMs) {
-        StringBuilder sb = new StringBuilder();
-        for (VehicleType vt : VehicleType.values()) {
-            long avgMs = avgWaitMs.getOrDefault(vt, 0L);
-            double avgS = (avgMs == 0L) ? 0.0 : (avgMs / 1000.0);
-            sb.append(vt.getTypeToString()).append("=")
-                    .append(String.format("%.2f", avgS)).append(" ");
-        }
-        return sb.toString().trim();
-    }
-
-    private String formatAvgRoad(Map<VehicleType, Double> avgRoad) {
-        StringBuilder sb = new StringBuilder();
-        for (VehicleType vt : VehicleType.values()) {
-            double avgR = avgRoad.getOrDefault(vt, 0.0);
-            sb.append(vt.getTypeToString()).append("=")
-                    .append(String.format("%.2f", avgR)).append(" ");
-        }
-        return sb.toString().trim();
-    }
-
-    private String formatTripStats(Map<VehicleType, long[]> tripStats) {
-        StringBuilder sb = new StringBuilder();
-        for (VehicleType vt : VehicleType.values()) {
-            long[] arr = tripStats.getOrDefault(vt, new long[]{0L, 0L, 0L});
-            double minS = (arr[0] == 0L) ? 0.0 : (arr[0] / 1000.0);
-            double avgS = (arr[1] == 0L) ? 0.0 : (arr[1] / 1000.0);
-            double maxS = (arr[2] == 0L) ? 0.0 : (arr[2] / 1000.0);
-            sb.append(vt.getTypeToString()).append("=")
-                    .append(String.format("%.2f", minS)).append("/")
-                    .append(String.format("%.2f", avgS)).append("/")
-                    .append(String.format("%.2f", maxS)).append(" ");
-        }
-        return sb.toString().trim();
+    private void setupWindowCloseHandler() {
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                if (controller != null) {
+                    log("Closing dashboard: stopping simulator...");
+                    try {
+                        controller.shutdown();
+                    } catch (Exception ex) {
+                        log("Error shutting down simulator: " + ex.getMessage());
+                    }
+                }
+                dispose();
+                System.exit(0);
+            }
+        });
     }
 
     private void updateStatsLabels() {
@@ -338,7 +258,7 @@ public class Dashboard extends JFrame {
 
         Map<VehicleType, Integer> createdMap = stats.getCreatedByType();
         Map<VehicleType, Integer> exitedMap = stats.getExitedByType();
-        setLabelText(statsCreatedByTypeLabel, "Created by type: " + joinCounts(createdMap));
+        UiUtils.setLabelText(statsCreatedByTypeLabel, "Created by type: " + UiUtils.joinCounts(createdMap));
 
         Map<VehicleType, Integer> activeMap = new EnumMap<>(VehicleType.class);
         synchronized (sprites) {
@@ -349,17 +269,18 @@ public class Dashboard extends JFrame {
                 activeMap.put(vt, activeMap.getOrDefault(vt, 0) + 1);
             }
         }
-        setLabelText(statsActiveByTypeLabel, "Active by type: " + joinCounts(activeMap));
-        setLabelText(statsExitedByTypeLabel, "Exited by type: " + joinCounts(exitedMap));
+        UiUtils.setLabelText(statsActiveByTypeLabel, "Active by type: " + UiUtils.joinCounts(activeMap));
+        UiUtils.setLabelText(statsExitedByTypeLabel, "Exited by type: " + UiUtils.joinCounts(exitedMap));
 
         Map<VehicleType, Long> avgWaitMs = stats.getAvgWaitByType();
-        setLabelText(statsAvgWaitByTypeLabel, "Avg wait (s) by type: " + formatAvgWait(avgWaitMs));
+        UiUtils.setLabelText(statsAvgWaitByTypeLabel, "Avg wait (s) by type: " + UiUtils.formatAvgWait(avgWaitMs));
 
         Map<VehicleType, Double> avgRoad = stats.getAvgRoadByTypeSeconds();
-        setLabelText(statsAvgRoadByTypeLabel, "Avg road (s) by type: " + formatAvgRoad(avgRoad));
+        UiUtils.setLabelText(statsAvgRoadByTypeLabel, "Avg road (s) by type: " + UiUtils.formatAvgRoad(avgRoad));
 
         Map<VehicleType, long[]> tripStats = stats.getTripStatsMillis();
-        setLabelText(statsTripByTypeLabel, "Trip min/avg/max (s) by type: " + formatTripStats(tripStats));
+        UiUtils.setLabelText(statsTripByTypeLabel,
+                "Trip min/avg/max (s) by type: " + UiUtils.formatTripStats(tripStats));
 
         StringBuilder perCross = new StringBuilder();
         Map<NodeEnum, Map<VehicleType, Integer>> perNode = stats.getPassedByNodeByType();
