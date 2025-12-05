@@ -23,8 +23,8 @@ public class EventHandler extends Thread {
      * Creates an event handler that listens on the defined port and inserts
      * received events into the priority queue.
      *
-     * @param p       event queue (PriorityBlockingQueue)
-     * @param running initial running state of the handler
+     * @param eventQueue event queue (PriorityBlockingQueue)
+     * @param running    initial running state of the handler
      */
     public EventHandler(PriorityBlockingQueue<Event> eventQueue, boolean running) {
         this.running = running;
