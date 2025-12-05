@@ -19,7 +19,7 @@ import java.util.Random;
  * their departure is sent to the destination crossroad over the network.
  */
 public class Entrance {
-    private static final double LAMBDA = 0.2;
+    private static double LAMBDA = 0.3;
     private static final Random RND = new Random();
     private final NodeEnum entrance;
     private final LogicalClock clock = new LogicalClock();
@@ -40,6 +40,17 @@ public class Entrance {
         this.probabilitySum = getProbabilitySum();
         this.destPort = RoadEnum.getRoadsFromCrossroad(entrance).get(0).getDestination().getPort();
         start();
+    }
+
+    static {
+        try {
+            String v = System.getProperty("simulation.lambda");
+            if (v != null && !v.isEmpty()) {
+                LAMBDA = Double.parseDouble(v);
+                System.out.println("[Entrance] Using simulation.lambda=" + LAMBDA);
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     /**

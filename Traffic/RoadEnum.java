@@ -9,7 +9,7 @@ import java.util.*;
  */
 public enum RoadEnum {
     E1_CR1(NodeEnum.E1, NodeEnum.CR1, 1000, 3000),
-    E2_CR2(NodeEnum.E2, NodeEnum.CR2, 1000, 5000),
+    E2_CR2(NodeEnum.E2, NodeEnum.CR2, 1000, 3000),
     E3_CR3(NodeEnum.E3, NodeEnum.CR3, 1000, 3000),
     CR1_CR2(NodeEnum.CR1, NodeEnum.CR2, 1500, 3000),
     CR1_CR4(NodeEnum.CR1, NodeEnum.CR4, 1500, 3000),
