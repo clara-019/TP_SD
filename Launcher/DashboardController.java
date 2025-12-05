@@ -266,7 +266,7 @@ public class DashboardController {
         int delay = (int) AUTO_STOP_MS;
         this.autoStopTimer = new javax.swing.Timer(delay, e -> {
             logCb.accept("Auto-stop: elapsed — requesting graceful stop.");
-            stopSimulation();
+            requestGracefulStop();
         });
         this.autoStopTimer.setRepeats(false);
         this.autoStopTimer.start();
